@@ -35,12 +35,12 @@
     .chip{display:inline-flex; align-items:center; gap:8px; padding:8px 12px; border-radius:999px; background:#152346; border:1px solid #1b2b58; color:#cfe8ff; font-weight:700}
     .chip input{accent-color:var(--brand)}
 
-    .verb-list{display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:12px} 
+    .verb-list{display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:12px}
     .verb{display:flex; align-items:flex-start; gap:10px; padding:12px 14px; background:#0f1a33; border:1px solid #13244a; border-radius:12px}
     .verb input{accent-color:var(--brand); margin-top:2px}
     .verb .vcol{display:flex; flex-direction:column; line-height:1.15}
     .verb .it{font-weight:800; font-size:1rem}
-    .verb .fr{color:var(--muted); font-size:.9rem} 
+    .verb .fr{color:var(--muted); font-size:.9rem}
 
     .bar{display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:space-between; padding:10px; background:#0d1832; border:1px solid var(--border); border-radius:12px}
     .bar .counters{display:flex; gap:10px; font-weight:900}
@@ -88,6 +88,8 @@
             <label class="chip"><input type="radio" name="mode" value="qcm" checked> QCM</label>
             <label class="chip"><input type="radio" name="mode" value="saisie"> Saisie libre</label>
             <label class="chip" title="Toujours actif pour CHIAMARSI"><input type="checkbox" id="fullForm" checked> Forme complète (pronoms)</label>
+            <label class="chip"><input type="checkbox" id="ttsEnabled"> Audio des questions</label>
+            <button id="testVoice" type="button" class="ghost">🔊 Tester</button>
           </div>
           <p class="note">Place un fichier <code>verbs.json</code> à côté de cette page pour alimenter la liste. Sans ce fichier, le démarrage sera bloqué.</p>
           <div id="loadWarn" class="warn hidden">❌ Impossible de charger <code>verbs.json</code>. Ajoute le fichier puis recharge la page.</div>
@@ -147,10 +149,31 @@
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   const normalize = s => (s||"")
     .toLowerCase()
-    .normalize('NFD').replace(/[\\u0300-\\u036f]/g,'') // enlève accents
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'') // enlève accents
     .replace(/’/g, "'")
-    .replace(/\\s+/g,' ') // espaces multiples
+    .replace(/\s+/g,' ') // espaces multiples
     .trim();
+
+  // ===== Synthèse vocale (lecture des questions) =====
+  let VOICES = [];
+  function refreshVoices(){ if('speechSynthesis' in window){ VOICES = speechSynthesis.getVoices(); } }
+  function getFrenchVoice(){
+    refreshVoices();
+    return VOICES.find(v=> (v.lang||'').toLowerCase().startsWith('fr')) || VOICES[0] || null;
+  }
+  function speak(text){
+    if(!STATE.ttsEnabled) return;
+    if(typeof speechSynthesis === 'undefined') return;
+    try{ speechSynthesis.cancel(); }catch{}
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'fr-FR';
+    const v = getFrenchVoice(); if(v) u.voice = v;
+    u.rate = 0.95; u.pitch = 1; u.volume = 1;
+    speechSynthesis.speak(u);
+  }
+  if('speechSynthesis' in window){
+    speechSynthesis.onvoiceschanged = refreshVoices; refreshVoices();
+  }
 
   // ===== Chargement JSON externe uniquement =====
   async function loadVerbs(){
@@ -174,6 +197,7 @@
     selectedVerbIds:new Set(),
     mode:'qcm', // 'qcm' | 'saisie'
     fullForm:true,
+    ttsEnabled:false,
     total:20,
     idx:0,
     good:0,
@@ -188,7 +212,7 @@
       const id = `verb-${v.id}`;
       const el = document.createElement('label');
       el.className = 'verb';
-      el.innerHTML = `<input type="checkbox" id="${id}" value="${v.id}"> <div class="vcol"><div class="it">${v.it}</div><div class="fr">— ${v.fr}</div></div>`;
+      el.innerHTML = `<input type=\"checkbox\" id=\"${id}\" value=\"${v.id}\"> <div class=\"vcol\"><div class=\"it\">${v.it}</div><div class=\"fr\">— ${v.fr}</div></div>`;
       box.appendChild(el);
       el.querySelector('input').addEventListener('change', onVerbToggle);
     });
@@ -202,6 +226,7 @@
   function readConfig(){
     STATE.mode = ($$('input[name="mode"]').find(r=>r.checked)||{}).value || 'qcm';
     STATE.fullForm = $('#fullForm').checked;
+    STATE.ttsEnabled = $('#ttsEnabled').checked;
     STATE.selectedVerbIds = new Set(
       $$('#verbsList input[type="checkbox"]').filter(c=>c.checked).map(c=>c.value)
     );
@@ -263,7 +288,7 @@
   }
 
   function updateCounters(){
-    $('#progress').textContent = Math.min(STATE.idx+1, STATE.total)+'/'+STATE.total;
+    $('#progress').textContent = `${Math.min(STATE.idx+1, STATE.total)}/${STATE.total}`;
     $('#score').textContent = STATE.good;
   }
 
@@ -272,14 +297,15 @@
       $('#qText').textContent = 'Terminé !';
       $('#modeQCM').classList.add('hidden');
       $('#modeInput').classList.add('hidden');
-      $('#feedback').innerHTML = '<span class="ok">Score final : '+STATE.good+'/'+STATE.total+'</span>';
+      $('#feedback').innerHTML = `<span class="ok">Score final : ${STATE.good}/${STATE.total}</span>`;
       $('#endActions').classList.remove('hidden');
       return;
     }
 
     STATE.current = nextTarget();
-    const qt = 'Comment dit‑on « '+STATE.current.prompt+' » en italien ?';
+    const qt = `Comment dit‑on « ${STATE.current.prompt} » en italien ?`;
     $('#qText').textContent = qt;
+    if(STATE.ttsEnabled) speak(qt);
     $('#feedback').textContent = '';
 
     if(STATE.mode==='qcm'){
@@ -288,7 +314,7 @@
       const options = makeQcmChoices(STATE.current);
       options.forEach(opt=>{
         const btn = document.createElement('button');
-        btn.type='button'; btn.className='choice'; btn.innerHTML = '<span>'+opt+'</span>';
+        btn.type='button'; btn.className='choice'; btn.innerHTML = `<span>${opt}</span>`;
         btn.addEventListener('click', ()=> handleQcmClick(opt, btn));
         box.appendChild(btn);
       });
@@ -301,18 +327,18 @@
   }
 
   function recordHistory(isCorrect, given, correct){
-    STATE.history.unshift({ q: '« '+STATE.current.prompt+' »', given, correct, ok:isCorrect });
+    STATE.history.unshift({ q: `« ${STATE.current.prompt} »`, given, correct, ok:isCorrect });
     const item = document.createElement('div');
     item.className = 'hist-item';
-    item.innerHTML =
-      '<div class="hist-head">'+
-        '<div>'+STATE.history[0].q+'</div>'+
-        '<div class="'+(isCorrect? 'ok':'ko')+'">'+(isCorrect?'✅ Réussi':'❌ Faux')+'</div>'+
-      '</div>'+ 
-      '<div class="hist-body">'+
-        'Ta réponse : <strong>'+(given||'—')+'</strong><br>'+
-        (isCorrect? '' : 'Bonne réponse : <strong>'+correct+'</strong>')+
-      '</div>';
+    item.innerHTML = `
+      <div class="hist-head">
+        <div>${STATE.history[0].q}</div>
+        <div class="${isCorrect? 'ok':'ko'}">${isCorrect?'✅ Réussi':'❌ Faux'}</div>
+      </div>
+      <div class="hist-body">
+        Ta réponse : <strong>${given||'—'}</strong><br>
+        ${isCorrect? '' : `Bonne réponse : <strong>${correct}</strong>`}
+      </div>`;
     $('#history').prepend(item);
   }
 
@@ -330,7 +356,7 @@
     const ok = normalize(choice)===normalize(correct);
     $$('#modeQCM .choice').forEach(b=> b.disabled=true);
     btn.classList.add(ok? 'correct':'wrong');
-    $('#feedback').innerHTML = ok ? '<span class="ok">✅ Correct</span>' : '<span class="ko">❌ Faux</span> → Bonne réponse : <strong>'+correct+'</strong>';
+    $('#feedback').innerHTML = ok ? '<span class="ok">✅ Correct</span>' : `<span class="ko">❌ Faux</span> → Bonne réponse : <strong>${correct}</strong>`;
     recordHistory(ok, choice, correct);
     afterAnswer(ok);
   }
@@ -341,7 +367,7 @@
     const val = $('#answer').value;
     const correct = STATE.current.answer;
     const ok = normalize(val)===normalize(correct);
-    $('#feedback').innerHTML = ok ? '<span class="ok">✅ Correct</span>' : '<span class="ko">❌ Faux</span> → Bonne réponse : <strong>'+correct+'</strong>';
+    $('#feedback').innerHTML = ok ? '<span class="ok">✅ Correct</span>' : `<span class="ko">❌ Faux</span> → Bonne réponse : <strong>${correct}</strong>`;
     recordHistory(ok, val, correct);
     afterAnswer(ok);
   });
@@ -354,22 +380,19 @@
     $('#config').classList.remove('hidden');
   });
   $('#replay').addEventListener('click', startQuiz);
+  $('#ttsEnabled').addEventListener('change', ()=>{ STATE.ttsEnabled = $('#ttsEnabled').checked; });
+  $('#testVoice').addEventListener('click', ()=>{ speak('Exemple : Comment dit‑on « je peux » en italien ?'); });
 
   // Mode & options
   $$('input[name="mode"]').forEach(r=> r.addEventListener('change', ()=>{
     STATE.mode = ($$('input[name="mode"]').find(x=>x.checked)||{}).value || 'qcm';
   }));
-  $('#fullForm').addEventListener('change', ()=>{
-    STATE.fullForm = $('#fullForm').checked;
-  });
+  $('#fullForm').addEventListener('change', ()=>{ STATE.fullForm = $('#fullForm').checked; });
 
   // Initialisation
   (async function init(){
     STATE.data = await loadVerbs();
-    if(!STATE.data){
-      $('#start').disabled = true;
-      return;
-    }
+    if(!STATE.data){ $('#start').disabled = true; return; }
     renderVerbChecks(STATE.data.verbs);
   })();
   </script>
