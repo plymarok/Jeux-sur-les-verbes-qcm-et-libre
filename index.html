@@ -156,20 +156,36 @@
 
   // ===== Synthèse vocale (lecture des questions) =====
   let VOICES = [];
-  function refreshVoices(){ if('speechSynthesis' in window){ VOICES = speechSynthesis.getVoices(); } }
+  function refreshVoices(){
+    if('speechSynthesis' in window){ VOICES = speechSynthesis.getVoices(); }
+  }
   function getFrenchVoice(){
     refreshVoices();
+    // Priorité aux voix FR si dispo, sinon 1ère voix
     return VOICES.find(v=> (v.lang||'').toLowerCase().startsWith('fr')) || VOICES[0] || null;
+  }
+  // Certains navigateurs (Chrome mobile / iOS) nécessitent un "déverrouillage" par un geste utilisateur
+  let ttsUnlocked = false;
+  function unlockTTS(){
+    if(typeof speechSynthesis === 'undefined' || ttsUnlocked) return;
+    try{
+      const u = new SpeechSynthesisUtterance(' ');
+      u.volume = 0; u.rate = 1; u.lang = 'fr-FR';
+      speechSynthesis.speak(u);
+      setTimeout(()=>{ try{ speechSynthesis.cancel(); }catch{} ttsUnlocked = true; }, 60);
+    }catch{}
   }
   function speak(text){
     if(!STATE.ttsEnabled) return;
     if(typeof speechSynthesis === 'undefined') return;
     try{ speechSynthesis.cancel(); }catch{}
     const u = new SpeechSynthesisUtterance(text);
-    u.lang = 'fr-FR';
-    const v = getFrenchVoice(); if(v) u.voice = v;
+    const v = getFrenchVoice();
+    if(v) u.voice = v; else u.lang = 'fr-FR';
     u.rate = 0.95; u.pitch = 1; u.volume = 1;
-    speechSynthesis.speak(u);
+    try{ if(speechSynthesis.paused) speechSynthesis.resume(); }catch{}
+    // petit délai pour laisser les voix se charger
+    setTimeout(()=> speechSynthesis.speak(u), 50);
   }
   if('speechSynthesis' in window){
     speechSynthesis.onvoiceschanged = refreshVoices; refreshVoices();
@@ -381,7 +397,12 @@
   });
   $('#replay').addEventListener('click', startQuiz);
   $('#ttsEnabled').addEventListener('change', ()=>{ STATE.ttsEnabled = $('#ttsEnabled').checked; });
-  $('#testVoice').addEventListener('click', ()=>{ speak('Exemple : Comment dit‑on « je peux » en italien ?'); });
+  $('#testVoice').addEventListener('click', ()=>{
+    // Force l'initialisation via un vrai geste utilisateur
+    unlockTTS();
+    STATE.ttsEnabled = $('#ttsEnabled').checked; // respecte la case cochée
+    speak('Exemple : Comment dit-on « je peux » en italien ?');
+  }); });
 
   // Mode & options
   $$('input[name="mode"]').forEach(r=> r.addEventListener('change', ()=>{
