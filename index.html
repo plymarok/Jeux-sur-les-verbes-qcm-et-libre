@@ -1,1 +1,377 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Exercices — Verbes italiens (QCM / Saisie libre)</title>
+  <style>
+    :root{
+      --bg:#0b1224; --panel:#0f172a; --card:#101a33; --ink:#eaf0fb; --muted:#9fb0c7;
+      --brand:#38bdf8; --brand2:#a78bfa; --good:#22c55e; --bad:#ef4444; --border:#1d2b4f;
+      --radius:16px; --shadow:0 12px 28px rgba(0,0,0,.35)
+    }
+    html,body{margin:0; background:
+      radial-gradient(1200px 600px at 10% -10%, #152244 0%, transparent 60%),
+      radial-gradient(900px 600px at 100% 0%, #1b2c52 0%, transparent 55%),
+      linear-gradient(180deg, var(--bg), #0e162c);
+      color:var(--ink); font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif}
+    *,*:before,*:after{box-sizing:border-box}
+
+    header{padding:26px 16px 8px; text-align:center}
+    header h1{margin:0 0 6px; font-size:1.6rem}
+    header p{margin:0; color:var(--muted)}
+
+    .wrap{max-width:1000px; margin:0 auto; padding:14px}
+    .panel{background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden}
+    .panel header{padding:14px 16px; text-align:left; border-bottom:1px solid var(--border)}
+    .panel header h2{margin:0; font-size:1.05rem}
+
+    .grid{display:grid; gap:14px}
+    @media(min-width:900px){.grid{grid-template-columns:1.1fr .9fr}}
+
+    .card{background:var(--card); border:1px solid var(--border); border-radius:14px; padding:14px}
+
+    .controls{display:flex; flex-wrap:wrap; gap:10px; align-items:center}
+    .chip{display:inline-flex; align-items:center; gap:8px; padding:8px 12px; border-radius:999px; background:#152346; border:1px solid #1b2b58; color:#cfe8ff; font-weight:700}
+    .chip input{accent-color:var(--brand)}
+
+    .verb-list{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px}
+    @media(min-width:720px){.verb-list{grid-template-columns:repeat(4,minmax(0,1fr))}}
+    .verb{display:flex; align-items:center; gap:8px; padding:10px 12px; background:#0f1a33; border:1px solid #13244a; border-radius:12px}
+    .verb input{accent-color:var(--brand)}
+    .verb small{color:var(--muted)}
+
+    .bar{display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:space-between; padding:10px; background:#0d1832; border:1px solid var(--border); border-radius:12px}
+    .bar .counters{display:flex; gap:10px; font-weight:900}
+
+    button{appearance:none; background:linear-gradient(180deg, var(--brand), #119bd4); color:#fff; border:0; padding:10px 14px; border-radius:12px; font-weight:800; letter-spacing:.2px; box-shadow:var(--shadow); cursor:pointer; transition:.15s}
+    button.ghost{background:#162549}
+    button:active{transform:translateY(1px)}
+    @media(hover:hover){button:hover{filter:brightness(1.07); transform:translateY(-1px)}}
+
+    .question{font-size:1.05rem; font-weight:800}
+    .choices{display:grid; gap:10px; margin-top:12px}
+    @media(min-width:720px){.choices{grid-template-columns:1fr 1fr}}
+    .choice{display:flex; align-items:center; justify-content:space-between; gap:10px; background:#0f1a33; border:1px solid #13244a; border-radius:12px; padding:12px 14px; font-weight:800; cursor:pointer}
+    .choice.correct{outline:2px solid var(--good)}
+    .choice.wrong{outline:2px solid var(--bad)}
+
+    .feedback{margin-top:10px; font-weight:800}
+    .ok{color:var(--good)} .ko{color:var(--bad)}
+
+    .history{display:grid; gap:8px}
+    .hist-item{display:grid; gap:6px; border:1px dashed #1b2b58; border-radius:10px; padding:10px}
+    .hist-head{display:flex; justify-content:space-between; gap:8px; font-weight:800}
+    .hist-head .ok{background:#10361f; padding:2px 8px; border-radius:999px}
+    .hist-head .ko{background:#3a0d13; padding:2px 8px; border-radius:999px}
+    .hist-body{color:var(--muted)}
+
+    .hidden{display:none!important}
+    .note{color:var(--muted); font-size:.9rem}
+    .warn{background:#3a0d13; color:#ffd6db; border:1px solid #7a1a23; padding:10px 12px; border-radius:12px}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Exercices — Verbes italiens</h1>
+    <p>Choisis tes verbes (chargés depuis <code>verbs.json</code>), ton mode (QCM ou saisie libre) et lance 20 questions. Correction immédiate + historique.</p>
+  </header>
+
+  <div class="wrap">
+    <!-- CONFIGURATION -->
+    <section class="panel" id="config">
+      <header><h2>⚙️ Configuration de l'exercice</h2></header>
+      <div class="grid">
+        <div class="card">
+          <div class="controls" style="margin-bottom:10px">
+            <label class="chip"><input type="radio" name="mode" value="qcm" checked> QCM</label>
+            <label class="chip"><input type="radio" name="mode" value="saisie"> Saisie libre</label>
+            <label class="chip" title="Toujours actif pour CHIAMARSI"><input type="checkbox" id="fullForm" checked> Forme complète (pronoms)</label>
+          </div>
+          <p class="note">Place un fichier <code>verbs.json</code> à côté de cette page pour alimenter la liste. Sans ce fichier, le démarrage sera bloqué.</p>
+          <div id="loadWarn" class="warn hidden">❌ Impossible de charger <code>verbs.json</code>. Ajoute le fichier puis recharge la page.</div>
+        </div>
+        <div class="card">
+          <strong>Verbes à inclure :</strong>
+          <div id="verbsList" class="verb-list" aria-live="polite"></div>
+        </div>
+      </div>
+      <div style="display:flex; gap:10px; justify-content:flex-end; margin:12px 14px 16px">
+        <button id="start" disabled>🚀 Lancer (20 questions)</button>
+      </div>
+    </section>
+
+    <!-- QUIZ -->
+    <section class="panel hidden" id="quiz">
+      <header>
+        <h2>🧪 Exercice en cours</h2>
+        <div class="bar" role="status">
+          <div class="counters">
+            <div>Progression : <span id="progress">1/20</span></div>
+            <div>Bonnes réponses : <span id="score">0</span></div>
+          </div>
+          <div style="display:flex; gap:8px">
+            <button id="reset" class="ghost">↻ Reset</button>
+            <button id="backToConfig" class="ghost">⚙️ Options</button>
+          </div>
+        </div>
+      </header>
+      <div class="grid">
+        <div class="card" id="currentQ">
+          <div class="question" id="qText">…</div>
+          <div id="modeQCM" class="choices hidden" role="listbox" aria-label="Choix de réponse"></div>
+          <div id="modeInput" class="hidden">
+            <form id="freeForm" autocomplete="off" style="display:flex; gap:8px; margin-top:12px">
+              <input id="answer" type="text" inputmode="latin" placeholder="Écris ta réponse en italien" style="flex:1; padding:12px 14px; border-radius:12px; background:#0f1a33; border:1px solid #13244a; color:var(--ink); font-weight:700" />
+              <button>Valider</button>
+            </form>
+          </div>
+          <div class="feedback" id="feedback"></div>
+        </div>
+        <div class="card">
+          <strong>Historique</strong>
+          <div id="history" class="history" aria-live="polite"></div>
+          <div id="endActions" class="hidden" style="margin-top:10px; display:flex; gap:10px">
+            <button id="replay">🔁 Rejouer</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+  // ===== Utilitaires =====
+  const $ = sel => document.querySelector(sel);
+  const $$ = sel => Array.from(document.querySelectorAll(sel));
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const normalize = s => (s||"")
+    .toLowerCase()
+    .normalize('NFD').replace(/[\\u0300-\\u036f]/g,'') // enlève accents
+    .replace(/’/g, "'")
+    .replace(/\\s+/g,' ') // espaces multiples
+    .trim();
+
+  // ===== Chargement JSON externe uniquement =====
+  async function loadVerbs(){
+    const warn = $('#loadWarn');
+    try{
+      const res = await fetch('verbs.json', {cache:'no-store'});
+      if(!res.ok) throw new Error('HTTP '+res.status);
+      const data = await res.json();
+      if(!data || !Array.isArray(data.verbs)) throw new Error('format');
+      warn.classList.add('hidden');
+      return data;
+    }catch(e){
+      warn.classList.remove('hidden');
+      return null;
+    }
+  }
+
+  // ===== État global =====
+  const STATE = {
+    data:null,
+    selectedVerbIds:new Set(),
+    mode:'qcm', // 'qcm' | 'saisie'
+    fullForm:true,
+    total:20,
+    idx:0,
+    good:0,
+    history:[],
+    current:null,
+  };
+
+  // ===== Construction UI config =====
+  function renderVerbChecks(verbs){
+    const box = $('#verbsList'); box.innerHTML = '';
+    verbs.forEach(v => {
+      const id = `verb-${v.id}`;
+      const el = document.createElement('label');
+      el.className = 'verb';
+      el.innerHTML = '<input type="checkbox" id="'+id+'" value="'+v.id+'"> <strong>'+v.it+'</strong> <small>— '+v.fr+'</small>';
+      box.appendChild(el);
+      el.querySelector('input').addEventListener('change', onVerbToggle);
+    });
+    onVerbToggle();
+  }
+  function onVerbToggle(){
+    const any = $$('#verbsList input[type="checkbox"]').some(c => c.checked);
+    $('#start').disabled = !any || !STATE.data; // bloque si pas de données
+  }
+
+  function readConfig(){
+    STATE.mode = ($$('input[name="mode"]').find(r=>r.checked)||{}).value || 'qcm';
+    STATE.fullForm = $('#fullForm').checked;
+    STATE.selectedVerbIds = new Set(
+      $$('#verbsList input[type="checkbox"]').filter(c=>c.checked).map(c=>c.value)
+    );
+  }
+
+  // ===== Génération questions =====
+  function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+  function shuffle(arr){ return arr.map(v=>[Math.random(),v]).sort((a,b)=>a[0]-b[0]).map(x=>x[1]); }
+
+  function nextTarget(){
+    const pool = STATE.data.verbs.filter(v => STATE.selectedVerbIds.has(v.id));
+    const verb = pick(pool);
+    const form = pick(verb.forms);
+    const prompt = form.fr; // FR fourni par JSON
+    const mustFull = verb.id === 'chiamarsi' ? true : STATE.fullForm;
+    const answer = (mustFull ? form.full : form.it).split('|')[0].trim();
+    return { verb, form, prompt, answer, mustFull };
+  }
+
+  function makeQcmChoices(target){
+    const { verb, form, answer, mustFull } = target;
+    const fmt = f => (mustFull || verb.id==='chiamarsi') ? f.full : f.it;
+
+    const choices = new Set([ normalize(answer) ]);
+    const labels = [ answer ];
+
+    const sameVerb = shuffle(verb.forms.filter(f=>f!==form)).slice(0,2);
+    sameVerb.forEach(f=>{
+      let label = fmt(f).split('|')[0].trim();
+      if(!choices.has(normalize(label))){ choices.add(normalize(label)); labels.push(label); }
+    });
+
+    const otherVerbs = shuffle(STATE.data.verbs.filter(v=>v.id!==verb.id && STATE.selectedVerbIds.has(v.id)));
+    for(const v of otherVerbs){
+      const f = pick(v.forms);
+      const lbl = (v.id==='chiamarsi' ? f.full : (STATE.fullForm ? f.full : f.it)).split('|')[0].trim();
+      if(!choices.has(normalize(lbl))){ choices.add(normalize(lbl)); labels.push(lbl); }
+      if(labels.length>=5) break;
+    }
+
+    while(labels.length<5){
+      const f = pick(verb.forms);
+      const lbl = fmt(f).split('|')[0].trim();
+      if(!choices.has(normalize(lbl))){ choices.add(normalize(lbl)); labels.push(lbl); }
+    }
+
+    return shuffle(labels);
+  }
+
+  // ===== Mécanique du quiz =====
+  async function startQuiz(){
+    readConfig();
+    STATE.total = 20; STATE.idx = 0; STATE.good = 0; STATE.history = [];
+    $('#config').classList.add('hidden');
+    $('#quiz').classList.remove('hidden');
+    $('#history').innerHTML = ''; $('#endActions').classList.add('hidden');
+    updateCounters();
+    await askNext();
+  }
+
+  function updateCounters(){
+    $('#progress').textContent = Math.min(STATE.idx+1, STATE.total)+'/'+STATE.total;
+    $('#score').textContent = STATE.good;
+  }
+
+  async function askNext(){
+    if(STATE.idx>=STATE.total){
+      $('#qText').textContent = 'Terminé !';
+      $('#modeQCM').classList.add('hidden');
+      $('#modeInput').classList.add('hidden');
+      $('#feedback').innerHTML = '<span class="ok">Score final : '+STATE.good+'/'+STATE.total+'</span>';
+      $('#endActions').classList.remove('hidden');
+      return;
+    }
+
+    STATE.current = nextTarget();
+    const qt = 'Comment dit‑on « '+STATE.current.prompt+' » en italien ?';
+    $('#qText').textContent = qt;
+    $('#feedback').textContent = '';
+
+    if(STATE.mode==='qcm'){
+      const box = $('#modeQCM'); box.innerHTML = ''; box.classList.remove('hidden');
+      $('#modeInput').classList.add('hidden');
+      const options = makeQcmChoices(STATE.current);
+      options.forEach(opt=>{
+        const btn = document.createElement('button');
+        btn.type='button'; btn.className='choice'; btn.innerHTML = '<span>'+opt+'</span>';
+        btn.addEventListener('click', ()=> handleQcmClick(opt, btn));
+        box.appendChild(btn);
+      });
+    }else{
+      $('#modeQCM').classList.add('hidden');
+      $('#modeInput').classList.remove('hidden');
+      $('#answer').value = '';
+      $('#answer').focus();
+    }
+  }
+
+  function recordHistory(isCorrect, given, correct){
+    STATE.history.unshift({ q: '« '+STATE.current.prompt+' »', given, correct, ok:isCorrect });
+    const item = document.createElement('div');
+    item.className = 'hist-item';
+    item.innerHTML =
+      '<div class="hist-head">'+
+        '<div>'+STATE.history[0].q+'</div>'+
+        '<div class="'+(isCorrect? 'ok':'ko')+'">'+(isCorrect?'✅ Réussi':'❌ Faux')+'</div>'+
+      '</div>'+ 
+      '<div class="hist-body">'+
+        'Ta réponse : <strong>'+(given||'—')+'</strong><br>'+
+        (isCorrect? '' : 'Bonne réponse : <strong>'+correct+'</strong>')+
+      '</div>';
+    $('#history').prepend(item);
+  }
+
+  async function afterAnswer(isCorrect){
+    if(isCorrect){ STATE.good++; }
+    STATE.idx++;
+    updateCounters();
+    await sleep(750);
+    askNext();
+  }
+
+  // QCM
+  function handleQcmClick(choice, btn){
+    const correct = STATE.current.answer;
+    const ok = normalize(choice)===normalize(correct);
+    $$('#modeQCM .choice').forEach(b=> b.disabled=true);
+    btn.classList.add(ok? 'correct':'wrong');
+    $('#feedback').innerHTML = ok ? '<span class="ok">✅ Correct</span>' : '<span class="ko">❌ Faux</span> → Bonne réponse : <strong>'+correct+'</strong>';
+    recordHistory(ok, choice, correct);
+    afterAnswer(ok);
+  }
+
+  // Saisie libre
+  $('#freeForm')?.addEventListener('submit', (e)=>{
+    e.preventDefault();
+    const val = $('#answer').value;
+    const correct = STATE.current.answer;
+    const ok = normalize(val)===normalize(correct);
+    $('#feedback').innerHTML = ok ? '<span class="ok">✅ Correct</span>' : '<span class="ko">❌ Faux</span> → Bonne réponse : <strong>'+correct+'</strong>';
+    recordHistory(ok, val, correct);
+    afterAnswer(ok);
+  });
+
+  // Boutons
+  $('#start').addEventListener('click', startQuiz);
+  $('#reset').addEventListener('click', startQuiz);
+  $('#backToConfig').addEventListener('click', ()=>{
+    $('#quiz').classList.add('hidden');
+    $('#config').classList.remove('hidden');
+  });
+  $('#replay').addEventListener('click', startQuiz);
+
+  // Mode & options
+  $$('input[name="mode"]').forEach(r=> r.addEventListener('change', ()=>{
+    STATE.mode = ($$('input[name="mode"]').find(x=>x.checked)||{}).value || 'qcm';
+  }));
+  $('#fullForm').addEventListener('change', ()=>{
+    STATE.fullForm = $('#fullForm').checked;
+  });
+
+  // Initialisation
+  (async function init(){
+    STATE.data = await loadVerbs();
+    if(!STATE.data){
+      $('#start').disabled = true;
+      return;
+    }
+    renderVerbChecks(STATE.data.verbs);
+  })();
+  </script>
+</body>
+</html>
 
