@@ -95,14 +95,7 @@
             <label class="chip"><input type="radio" name="mode" value="qcm" checked> QCM</label>
             <label class="chip"><input type="radio" name="mode" value="saisie"> Saisie libre</label>
             <label class="chip" title="Toujours actif pour CHIAMARSI"><input type="checkbox" id="fullForm" checked> Forme complète (pronoms)</label>
-            <label class="chip">Nombre de questions
-              <select id="qCount">
-                <option value="10">10</option>
-                <option value="15">15</option>
-                <option value="20" selected>20</option>
-                <option value="30">30</option>
-              </select>
-            </label>
+            
             <label class="chip" title="Affiche la bonne réponse en vert pour contrôle"><input type="checkbox" id="debugMode"> Mode debug</label>
           </div>
           <p class="note">Place un fichier <code>verbs.json</code> à côté de cette page pour alimenter la liste. Sans ce fichier, le démarrage sera bloqué.</p>
@@ -329,6 +322,17 @@
     return shuffle(labels);
   }
 
+  // ===== Demande du nombre de questions =====
+  function getRequestedCount(){
+    const def = parseInt(sessionStorage.getItem('qCount')||'20',10);
+    const input = prompt('Combien de questions ? (ex: 20)', isNaN(def)?'20':String(def));
+    if(input===null) return null; // annulé
+    const n = parseInt(input,10);
+    if(!Number.isFinite(n) || n<=0){ alert('Entrée invalide.'); return null; }
+    sessionStorage.setItem('qCount', String(n));
+    return n;
+  }
+
   // ===== Mécanique du quiz =====
   async function startQuiz(){
     readConfig();
@@ -336,7 +340,8 @@
     // Auth debug avant tout
     if(!ensureDebugAuth()) return;
 
-    const requested = parseInt($('#qCount').value, 10) || 20;
+    const requested = (typeof getRequestedCount==='function' ? getRequestedCount() : 20);
+    if(requested===null) return; // annulé
 
     // capacité
     const P = (STATE.selectedVerbIds.size) * 6; // 6 personnes par verbe
@@ -345,7 +350,9 @@
       prepareQueueUniqueOnly(requested);
       launch();
     }else{
-      // Afficher la "modale" de capacité
+      // Afficher la "modale" de capacité et revenir à la config
+      $('#quiz').classList.add('hidden');
+      $('#config').classList.remove('hidden')
       $('#capText').textContent = `Vous avez sélectionné ${STATE.selectedVerbIds.size} verbe(s) → ${P} questions uniques possibles. Voulez‑vous :`;
       $('#capacity').classList.remove('hidden');
       // Brancher actions
