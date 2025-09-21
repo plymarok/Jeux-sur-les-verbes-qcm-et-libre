@@ -35,11 +35,12 @@
     .chip{display:inline-flex; align-items:center; gap:8px; padding:8px 12px; border-radius:999px; background:#152346; border:1px solid #1b2b58; color:#cfe8ff; font-weight:700}
     .chip input{accent-color:var(--brand)}
 
-    .verb-list{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px}
-    @media(min-width:720px){.verb-list{grid-template-columns:repeat(4,minmax(0,1fr))}}
-    .verb{display:flex; align-items:center; gap:8px; padding:10px 12px; background:#0f1a33; border:1px solid #13244a; border-radius:12px}
-    .verb input{accent-color:var(--brand)}
-    .verb small{color:var(--muted)}
+    .verb-list{display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:12px} 
+    .verb{display:flex; align-items:flex-start; gap:10px; padding:12px 14px; background:#0f1a33; border:1px solid #13244a; border-radius:12px}
+    .verb input{accent-color:var(--brand); margin-top:2px}
+    .verb .vcol{display:flex; flex-direction:column; line-height:1.15}
+    .verb .it{font-weight:800; font-size:1rem}
+    .verb .fr{color:var(--muted); font-size:.9rem} 
 
     .bar{display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:space-between; padding:10px; background:#0d1832; border:1px solid var(--border); border-radius:12px}
     .bar .counters{display:flex; gap:10px; font-weight:900}
@@ -187,7 +188,7 @@
       const id = `verb-${v.id}`;
       const el = document.createElement('label');
       el.className = 'verb';
-      el.innerHTML = '<input type="checkbox" id="'+id+'" value="'+v.id+'"> <strong>'+v.it+'</strong> <small>— '+v.fr+'</small>';
+      el.innerHTML = `<input type="checkbox" id="${id}" value="${v.id}"> <div class="vcol"><div class="it">${v.it}</div><div class="fr">— ${v.fr}</div></div>`;
       box.appendChild(el);
       el.querySelector('input').addEventListener('change', onVerbToggle);
     });
@@ -374,4 +375,3 @@
   </script>
 </body>
 </html>
-
