@@ -262,6 +262,41 @@
   function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
   function shuffle(arr){ return arr.map(v=>[Math.random(),v]).sort((a,b)=>a[0]-b[0]).map(x=>x[1]); }
 
+  // ==== Génération des choix QCM (1 juste + 4 leurres) ====
+  function makeQcmChoices(q){
+    const correct = q.answer;
+    const opts = [];
+    const seen = new Set([normalize(correct)]);
+    const pushUnique = (s)=>{ if(!s) return; const k=normalize(s); if(!seen.has(k)){ seen.add(k); opts.push(s); }};
+
+    // 1) Leurres du même verbe (max 2)
+    const sameForms = shuffle(q.verb.forms
+      .map(f => (q.mustFull ? f.full : f.it).split('|')[0].trim())
+      .filter(s => normalize(s)!==normalize(correct)));
+    for(const s of sameForms){ if(opts.length>=2) break; pushUnique(s); }
+
+    // 2) Leurres depuis d'autres verbes sélectionnés
+    const selectedVerbs = STATE.data.verbs.filter(v=> STATE.selectedVerbIds.has(v.id) && v.id!==q.verb.id);
+    const poolOther = shuffle(selectedVerbs.flatMap(v => v.forms.map(f => {
+      const mf = (v.id==='chiamarsi') ? true : STATE.fullForm;
+      return (mf ? f.full : f.it).split('|')[0].trim();
+    })));
+    for(const s of poolOther){ if(opts.length>=4) break; pushUnique(s); }
+
+    // 3) Si pas assez, compléter par l'ensemble du jeu
+    if(opts.length<4){
+      const allPool = shuffle(STATE.data.verbs.flatMap(v => v.forms.map(f => {
+        const mf = (v.id==='chiamarsi') ? true : STATE.fullForm;
+        return (mf ? f.full : f.it).split('|')[0].trim();
+      })));
+      for(const s of allPool){ if(opts.length>=4) break; pushUnique(s); }
+    }
+
+    // 4) Assembler et mélanger
+    const answers = [correct, ...opts.slice(0,4)];
+    return shuffle(answers);
+  }
+
   function buildUniquePool(){
     const pool = [];
     const seen = new Set();
