@@ -78,6 +78,13 @@
     .capacity{border:1px solid #6b1b1b; background:#2a1010; color:#ffd6d9; border-radius:12px; padding:12px; display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:space-between}
     .capacity .actions{display:flex; gap:8px}
   </style>
+  <style>
+    /* === Styles ajoutés pour les reprises (subsidiaries) === */
+    .card.subs{background:#2b2300; border-color:#5a4500; box-shadow:0 0 0 2px rgba(250,204,21,.12) inset}
+    .badge-subs{display:inline-flex; align-items:center; gap:6px; padding:3px 8px; border-radius:999px; border:1px solid #5a4500; background:#2b2300; color:#facc15; font-size:.75rem; font-weight:900}
+    .card.subs .choice{background:#1b1603; border-color:#3b2f03}
+    .hist-head .subs{background:#2b2300; border:1px solid #5a4500; color:#facc15; padding:2px 8px; border-radius:999px}
+  </style>
 </head>
 <body>
   <header>
@@ -522,6 +529,139 @@
     STATE.data = await loadVerbs();
     if(!STATE.data){ $('#start').disabled = true; return; }
     renderVerbChecks(STATE.data.verbs);
+  })();
+  </script>
+  <script>
+  // === Extension logique: reprises par temps de réflexion + marquage jaune ===
+  (function(){
+    if(typeof window.STATE === 'undefined') return;
+    // Étend l'état
+    if(!STATE.repeatedFrom) STATE.repeatedFrom = new Set();
+    if(typeof STATE.qStart === 'undefined') STATE.qStart = 0;
+
+    // Utilitaires sûrs
+    const has = (fn)=> typeof fn === 'function';
+
+    // Préparer la file: uniques d'abord
+    function prepareQueue(N){
+      if(!has(window.buildUniquePool)) return;
+      STATE.uniquePool = buildUniquePool();
+      const P = STATE.uniquePool.length;
+      const base = has(window.shuffle) ? shuffle(STATE.uniquePool) : STATE.uniquePool.slice();
+      STATE.queue = base.slice(0, Math.min(N, P));
+      STATE.total = N;
+      STATE.repeatedFrom.clear();
+    }
+    window.prepareQueue = prepareQueue;
+
+    // Ajoute des reprises en fonction du temps de réponse (du plus long au plus court)
+    function scheduleSubsidiariesIfNeeded(){
+      const remainingNeeded = STATE.total - STATE.idx - STATE.queue.length;
+      if(remainingNeeded <= 0) return;
+      const candidates = (STATE.history||[])
+        .filter(h => h && h.src && !h.src.subsidiary && !STATE.repeatedFrom.has(h.src.key))
+        .sort((a,b)=> (b.dur||0) - (a.dur||0));
+      const toTake = candidates.slice(0, remainingNeeded);
+      const clones = toTake.map(h=>{ STATE.repeatedFrom.add(h.src.key); return Object.assign({}, h.src, {subsidiary:true}); });
+      if(has(window.shuffle)) STATE.queue.push(...shuffle(clones)); else STATE.queue.push(...clones);
+    }
+    window.scheduleSubsidiariesIfNeeded = scheduleSubsidiariesIfNeeded;
+
+    // Remplace askNext pour insérer le marquage jaune + chrono et gérer les reprises
+    window.askNext = function(){
+      if(STATE.idx>=STATE.total){
+        document.getElementById('qText').textContent = 'Terminé !';
+        document.getElementById('modeQCM').classList.add('hidden');
+        document.getElementById('modeInput').classList.add('hidden');
+        document.getElementById('feedback').innerHTML = '<span class="ok">Score final : '+STATE.good+'/'+STATE.total+'</span>';
+        document.getElementById('endActions').classList.remove('hidden');
+        return;
+      }
+      if(STATE.queue.length===0){
+        scheduleSubsidiariesIfNeeded();
+        if(STATE.queue.length===0){
+          document.getElementById('qText').textContent = 'Terminé !';
+          document.getElementById('modeQCM').classList.add('hidden');
+          document.getElementById('modeInput').classList.add('hidden');
+          document.getElementById('feedback').innerHTML = '<span class="ok">Score final : '+STATE.good+'/'+STATE.total+'</span>';
+          document.getElementById('endActions').classList.remove('hidden');
+          return;
+        }
+      }
+
+      STATE.current = STATE.queue.shift();
+      const card = document.getElementById('currentQ');
+      card.classList.toggle('subs', !!STATE.current.subsidiary);
+      const badge = STATE.current.subsidiary ? '<span class="badge-subs">SUBSIDIARY</span>' : '';
+      const qt = 'Comment dit‑on « '+STATE.current.prompt+' » en italien ?';
+      document.getElementById('qText').innerHTML = badge+' '+qt;
+      document.getElementById('feedback').textContent = '';
+
+      // Debug hint pour saisie libre
+      const dbg = document.getElementById('debugAns');
+      if(STATE.debug){ dbg.textContent = 'DEBUG — réponse attendue : '+STATE.current.answer; dbg.classList.remove('hidden'); } else { dbg.classList.add('hidden'); }
+
+      // démarrer le chrono
+      STATE.qStart = Date.now();
+
+      if(STATE.mode==='qcm'){
+        const box = document.getElementById('modeQCM'); box.innerHTML = ''; box.classList.remove('hidden');
+        document.getElementById('modeInput').classList.add('hidden');
+        const options = has(window.makeQcmChoices) ? makeQcmChoices(STATE.current) : [STATE.current.answer];
+        options.forEach(opt=>{
+          const btn = document.createElement('button');
+          btn.type='button'; btn.className='choice'; btn.innerHTML = '<span>'+opt+'</span>';
+          if(STATE.debug && has(window.normalize) && normalize(opt)===normalize(STATE.current.answer)){
+            btn.classList.add('debug-hint');
+          }
+          btn.addEventListener('click', ()=> handleQcmClick(opt, btn));
+          box.appendChild(btn);
+        });
+      }else{
+        document.getElementById('modeQCM').classList.add('hidden');
+        document.getElementById('modeInput').classList.remove('hidden');
+        const a = document.getElementById('answer'); if(a){ a.value=''; a.focus(); }
+      }
+    };
+
+    // Remplace recordHistory pour mémoriser le temps + badge jaune dans l'historique
+    window.recordHistory = function(isCorrect, given, correct){
+      const dur = Math.max(0, Date.now() - (STATE.qStart||Date.now()));
+      const wasSubs = !!STATE.current.subsidiary;
+      const idx = STATE.idx + 1;
+      STATE.history.unshift({ q: '« '+STATE.current.prompt+' »', given, correct, ok:isCorrect, src: STATE.current, dur, idx, wasSubs });
+      const item = document.createElement('div');
+      item.className = 'hist-item';
+      const tag = wasSubs ? '<span class="subs">SUBSIDIARY</span>' : '';
+      const durSec = (dur/1000).toFixed(1)+'s';
+      item.innerHTML = '<div class="hist-head"><div>'+tag+' '+STATE.history[0].q+' · <span title="Temps de réponse">'+durSec+'</span></div><div class="'+(isCorrect?'ok':'ko')+'">'+(isCorrect?'✅ Réussi':'❌ Faux')+'</div></div><div class="hist-body">Ta réponse : <strong>'+(given||'—')+'</strong><br>'+ (isCorrect?'':'Bonne réponse : <strong>'+correct+'</strong>') +'</div>';
+      const hist = document.getElementById('history'); if(hist) hist.prepend(item);
+    };
+
+    // Nouveau démarrage qui demande le nombre + prépare la file uniques
+    function newStartQuiz(){
+      if(!has(window.readConfig)) return; readConfig();
+      if(!ensureDebugAuth()) return;
+      const def = parseInt(sessionStorage.getItem('qCount')||'20',10);
+      const input = prompt('Combien de questions ? (ex: 20)', isNaN(def)?'20':String(def));
+      if(input===null) return; const n = parseInt(input,10); if(!Number.isFinite(n)||n<=0){ alert('Entrée invalide.'); return; }
+      sessionStorage.setItem('qCount', String(n));
+      prepareQueue(n);
+      // launch
+      STATE.idx = 0; STATE.good = 0; STATE.history = []; STATE.current = null; STATE.qStart = 0;
+      document.getElementById('config').classList.add('hidden');
+      document.getElementById('quiz').classList.remove('hidden');
+      document.getElementById('history').innerHTML = ''; document.getElementById('endActions').classList.add('hidden');
+      document.getElementById('progress').textContent = '1/'+STATE.total; document.getElementById('score').textContent = '0';
+      askNext();
+    }
+
+    // Rebind des boutons: on clone pour enlever les anciens listeners
+    ['start','reset','replay'].forEach(id=>{
+      const el = document.getElementById(id); if(!el) return;
+      const clone = el.cloneNode(true); el.parentNode.replaceChild(clone, el);
+      clone.addEventListener('click', newStartQuiz);
+    });
   })();
   </script>
 </body>
