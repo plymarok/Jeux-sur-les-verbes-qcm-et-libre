@@ -1,1 +1,109 @@
+{
+  "verbs": [
+    {
+      "id": "fare",
+      "it": "fare",
+      "fr": "faire",
+      "forms": [
+        { "person": "io",      "it": "faccio",    "full": "io faccio",                 "fr": "je fais" },
+        { "person": "tu",      "it": "fai",       "full": "tu fai",                     "fr": "tu fais" },
+        { "person": "lui/lei", "it": "fa",        "full": "lui fa | lei fa",            "fr": "il/elle fait" },
+        { "person": "noi",     "it": "facciamo",  "full": "noi facciamo",               "fr": "nous faisons" },
+        { "person": "voi",     "it": "fate",      "full": "voi fate",                   "fr": "vous faites" },
+        { "person": "loro",    "it": "fanno",     "full": "loro fanno",                 "fr": "ils/elles font" }
+      ]
+    },
+    {
+      "id": "potere",
+      "it": "potere",
+      "fr": "pouvoir",
+      "forms": [
+        { "person": "io",      "it": "posso",     "full": "io posso",                   "fr": "je peux" },
+        { "person": "tu",      "it": "puoi",      "full": "tu puoi",                    "fr": "tu peux" },
+        { "person": "lui/lei", "it": "può",       "full": "lui può | lei può",          "fr": "il/elle peut" },
+        { "person": "noi",     "it": "possiamo",  "full": "noi possiamo",               "fr": "nous pouvons" },
+        { "person": "voi",     "it": "potete",    "full": "voi potete",                 "fr": "vous pouvez" },
+        { "person": "loro",    "it": "possono",   "full": "loro possono",               "fr": "ils/elles peuvent" }
+      ]
+    },
+    {
+      "id": "andare",
+      "it": "andare",
+      "fr": "aller",
+      "forms": [
+        { "person": "io",      "it": "vado",      "full": "io vado",                    "fr": "je vais" },
+        { "person": "tu",      "it": "vai",       "full": "tu vai",                     "fr": "tu vas" },
+        { "person": "lui/lei", "it": "va",        "full": "lui va | lei va",            "fr": "il/elle va" },
+        { "person": "noi",     "it": "andiamo",   "full": "noi andiamo",                "fr": "nous allons" },
+        { "person": "voi",     "it": "andate",    "full": "voi andate",                 "fr": "vous allez" },
+        { "person": "loro",    "it": "vanno",     "full": "loro vanno",                 "fr": "ils/elles vont" }
+      ]
+    },
+    {
+      "id": "chiamarsi",
+      "it": "chiamarsi",
+      "fr": "s’appeler",
+      "forms": [
+        { "person": "io",      "it": "mi chiamo",     "full": "io mi chiamo",                "fr": "je m’appelle" },
+        { "person": "tu",      "it": "ti chiami",     "full": "tu ti chiami",                "fr": "tu t’appelles" },
+        { "person": "lui/lei", "it": "si chiama",     "full": "lui si chiama | lei si chiama","fr": "il/elle s’appelle" },
+        { "person": "noi",     "it": "ci chiamiamo",  "full": "noi ci chiamiamo",            "fr": "nous nous appelons" },
+        { "person": "voi",     "it": "vi chiamate",   "full": "voi vi chiamate",             "fr": "vous vous appelez" },
+        { "person": "loro",    "it": "si chiamano",   "full": "loro si chiamano",            "fr": "ils/elles s’appellent" }
+      ]
+    },
+    {
+      "id": "essere",
+      "it": "essere",
+      "fr": "être",
+      "forms": [
+        { "person": "io",      "it": "sono",      "full": "io sono",                   "fr": "je suis" },
+        { "person": "tu",      "it": "sei",       "full": "tu sei",                    "fr": "tu es" },
+        { "person": "lui/lei", "it": "è",         "full": "lui è | lei è",             "fr": "il/elle est" },
+        { "person": "noi",     "it": "siamo",     "full": "noi siamo",                 "fr": "nous sommes" },
+        { "person": "voi",     "it": "siete",     "full": "voi siete",                 "fr": "vous êtes" },
+        { "person": "loro",    "it": "sono",      "full": "loro sono",                 "fr": "ils/elles sont" }
+      ]
+    },
+    {
+      "id": "avere",
+      "it": "avere",
+      "fr": "avoir",
+      "forms": [
+        { "person": "io",      "it": "ho",        "full": "io ho",                     "fr": "j’ai" },
+        { "person": "tu",      "it": "hai",       "full": "tu hai",                    "fr": "tu as" },
+        { "person": "lui/lei", "it": "ha",        "full": "lui ha | lei ha",           "fr": "il/elle a" },
+        { "person": "noi",     "it": "abbiamo",   "full": "noi abbiamo",               "fr": "nous avons" },
+        { "person": "voi",     "it": "avete",     "full": "voi avete",                 "fr": "vous avez" },
+        { "person": "loro",    "it": "hanno",     "full": "loro hanno",                "fr": "ils/elles ont" }
+      ]
+    },
+    {
+      "id": "parlare",
+      "it": "parlare",
+      "fr": "parler",
+      "forms": [
+        { "person": "io",      "it": "parlo",     "full": "io parlo",                  "fr": "je parle" },
+        { "person": "tu",      "it": "parli",     "full": "tu parli",                  "fr": "tu parles" },
+        { "person": "lui/lei", "it": "parla",     "full": "lui parla | lei parla",     "fr": "il/elle parle" },
+        { "person": "noi",     "it": "parliamo",  "full": "noi parliamo",              "fr": "nous parlons" },
+        { "person": "voi",     "it": "parlate",   "full": "voi parlate",               "fr": "vous parlez" },
+        { "person": "loro",    "it": "parlano",   "full": "loro parlano",              "fr": "ils/elles parlent" }
+      ]
+    },
+    {
+      "id": "leggere",
+      "it": "leggere",
+      "fr": "lire",
+      "forms": [
+        { "person": "io",      "it": "leggo",     "full": "io leggo",                  "fr": "je lis" },
+        { "person": "tu",      "it": "leggi",     "full": "tu leggi",                  "fr": "tu lis" },
+        { "person": "lui/lei", "it": "legge",     "full": "lui legge | lei legge",     "fr": "il/elle lit" },
+        { "person": "noi",     "it": "leggiamo",  "full": "noi leggiamo",              "fr": "nous lisons" },
+        { "person": "voi",     "it": "leggete",   "full": "voi leggete",               "fr": "vous lisez" },
+        { "person": "loro",    "it": "leggono",   "full": "loro leggono",              "fr": "ils/elles lisent" }
+      ]
+    }
+  ]
+}
 
