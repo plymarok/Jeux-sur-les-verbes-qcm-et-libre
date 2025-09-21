@@ -33,7 +33,7 @@
 
     .controls{display:flex; flex-wrap:wrap; gap:10px; align-items:center}
     .chip{display:inline-flex; align-items:center; gap:8px; padding:8px 12px; border-radius:999px; background:#152346; border:1px solid #1b2b58; color:#cfe8ff; font-weight:700}
-    .chip input{accent-color:var(--brand)}
+    .chip input, select{accent-color:var(--brand)}
 
     .verb-list{display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:12px}
     .verb{display:flex; align-items:flex-start; gap:10px; padding:12px 14px; background:#0f1a33; border:1px solid #13244a; border-radius:12px}
@@ -70,12 +70,16 @@
     .hidden{display:none!important}
     .note{color:var(--muted); font-size:.9rem}
     .warn{background:#3a0d13; color:#ffd6db; border:1px solid #7a1a23; padding:10px 12px; border-radius:12px}
+
+    /* petite "modale" inline pour la capacité */
+    .capacity{border:1px solid #6b1b1b; background:#2a1010; color:#ffd6d9; border-radius:12px; padding:12px; display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:space-between}
+    .capacity .actions{display:flex; gap:8px}
   </style>
 </head>
 <body>
   <header>
     <h1>Exercices — Verbes italiens</h1>
-    <p>Choisis tes verbes (chargés depuis <code>verbs.json</code>), ton mode (QCM ou saisie libre) et lance 20 questions. Correction immédiate + historique.</p>
+    <p>Choisis tes verbes (chargés depuis <code>verbs.json</code>), ton mode (QCM ou saisie libre) et lance une série sans répétition. Correction immédiate + historique.</p>
   </header>
 
   <div class="wrap">
@@ -88,11 +92,25 @@
             <label class="chip"><input type="radio" name="mode" value="qcm" checked> QCM</label>
             <label class="chip"><input type="radio" name="mode" value="saisie"> Saisie libre</label>
             <label class="chip" title="Toujours actif pour CHIAMARSI"><input type="checkbox" id="fullForm" checked> Forme complète (pronoms)</label>
-            <label class="chip"><input type="checkbox" id="ttsEnabled"> Audio des questions</label>
-            <button id="testVoice" type="button" class="ghost">🔊 Tester</button>
+            <label class="chip">Nombre de questions
+              <select id="qCount">
+                <option value="10">10</option>
+                <option value="15">15</option>
+                <option value="20" selected>20</option>
+                <option value="30">30</option>
+              </select>
+            </label>
           </div>
           <p class="note">Place un fichier <code>verbs.json</code> à côté de cette page pour alimenter la liste. Sans ce fichier, le démarrage sera bloqué.</p>
           <div id="loadWarn" class="warn hidden">❌ Impossible de charger <code>verbs.json</code>. Ajoute le fichier puis recharge la page.</div>
+          <div id="capacity" class="capacity hidden" role="alert">
+            <div id="capText">Capacité</div>
+            <div class="actions">
+              <button id="capUnique" class="ghost">Rester à P (uniques)</button>
+              <button id="capReview" class="ghost">Atteindre N avec révisions</button>
+              <button id="capCancel" class="ghost">Annuler</button>
+            </div>
+          </div>
         </div>
         <div class="card">
           <strong>Verbes à inclure :</strong>
@@ -100,7 +118,7 @@
         </div>
       </div>
       <div style="display:flex; gap:10px; justify-content:flex-end; margin:12px 14px 16px">
-        <button id="start" disabled>🚀 Lancer (20 questions)</button>
+        <button id="start" disabled>🚀 Lancer</button>
       </div>
     </section>
 
@@ -149,47 +167,10 @@
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   const normalize = s => (s||"")
     .toLowerCase()
-    .normalize('NFD').replace(/[\u0300-\u036f]/g,'') // enlève accents
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
     .replace(/’/g, "'")
-    .replace(/\s+/g,' ') // espaces multiples
+    .replace(/\s+/g,' ')
     .trim();
-
-  // ===== Synthèse vocale (lecture des questions) =====
-  let VOICES = [];
-  function refreshVoices(){
-    if('speechSynthesis' in window){ VOICES = speechSynthesis.getVoices(); }
-  }
-  function getFrenchVoice(){
-    refreshVoices();
-    // Priorité aux voix FR si dispo, sinon 1ère voix
-    return VOICES.find(v=> (v.lang||'').toLowerCase().startsWith('fr')) || VOICES[0] || null;
-  }
-  // Certains navigateurs (Chrome mobile / iOS) nécessitent un "déverrouillage" par un geste utilisateur
-  let ttsUnlocked = false;
-  function unlockTTS(){
-    if(typeof speechSynthesis === 'undefined' || ttsUnlocked) return;
-    try{
-      const u = new SpeechSynthesisUtterance(' ');
-      u.volume = 0; u.rate = 1; u.lang = 'fr-FR';
-      speechSynthesis.speak(u);
-      setTimeout(()=>{ try{ speechSynthesis.cancel(); }catch{} ttsUnlocked = true; }, 60);
-    }catch{}
-  }
-  function speak(text){
-    if(!STATE.ttsEnabled) return;
-    if(typeof speechSynthesis === 'undefined') return;
-    try{ speechSynthesis.cancel(); }catch{}
-    const u = new SpeechSynthesisUtterance(text);
-    const v = getFrenchVoice();
-    if(v) u.voice = v; else u.lang = 'fr-FR';
-    u.rate = 0.95; u.pitch = 1; u.volume = 1;
-    try{ if(speechSynthesis.paused) speechSynthesis.resume(); }catch{}
-    // petit délai pour laisser les voix se charger
-    setTimeout(()=> speechSynthesis.speak(u), 50);
-  }
-  if('speechSynthesis' in window){
-    speechSynthesis.onvoiceschanged = refreshVoices; refreshVoices();
-  }
 
   // ===== Chargement JSON externe uniquement =====
   async function loadVerbs(){
@@ -213,12 +194,14 @@
     selectedVerbIds:new Set(),
     mode:'qcm', // 'qcm' | 'saisie'
     fullForm:true,
-    ttsEnabled:false,
     total:20,
     idx:0,
     good:0,
     history:[],
     current:null,
+    queue:[], // file d'attente des questions
+    uniquePool:[], // toutes les questions uniques possibles pour cette config
+    repeats:{enabled:false, target:0, scheduled:0, minGap:4, scheduledKeys:new Set()}
   };
 
   // ===== Construction UI config =====
@@ -228,7 +211,7 @@
       const id = `verb-${v.id}`;
       const el = document.createElement('label');
       el.className = 'verb';
-      el.innerHTML = `<input type=\"checkbox\" id=\"${id}\" value=\"${v.id}\"> <div class=\"vcol\"><div class=\"it\">${v.it}</div><div class=\"fr\">— ${v.fr}</div></div>`;
+      el.innerHTML = `<input type="checkbox" id="${id}" value="${v.id}"> <div class="vcol"><div class="it">${v.it}</div><div class="fr">— ${v.fr}</div></div>`;
       box.appendChild(el);
       el.querySelector('input').addEventListener('change', onVerbToggle);
     });
@@ -237,31 +220,56 @@
   function onVerbToggle(){
     const any = $$('#verbsList input[type="checkbox"]').some(c => c.checked);
     $('#start').disabled = !any || !STATE.data; // bloque si pas de données
+    $('#capacity').classList.add('hidden');
   }
 
   function readConfig(){
     STATE.mode = ($$('input[name="mode"]').find(r=>r.checked)||{}).value || 'qcm';
     STATE.fullForm = $('#fullForm').checked;
-    STATE.ttsEnabled = $('#ttsEnabled').checked;
     STATE.selectedVerbIds = new Set(
       $$('#verbsList input[type="checkbox"]').filter(c=>c.checked).map(c=>c.value)
     );
   }
 
-  // ===== Génération questions =====
+  // ===== Génération: pool unique & file =====
   function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
   function shuffle(arr){ return arr.map(v=>[Math.random(),v]).sort((a,b)=>a[0]-b[0]).map(x=>x[1]); }
 
-  function nextTarget(){
-    const pool = STATE.data.verbs.filter(v => STATE.selectedVerbIds.has(v.id));
-    const verb = pick(pool);
-    const form = pick(verb.forms);
-    const prompt = form.fr; // FR fourni par JSON
-    const mustFull = verb.id === 'chiamarsi' ? true : STATE.fullForm;
-    const answer = (mustFull ? form.full : form.it).split('|')[0].trim();
-    return { verb, form, prompt, answer, mustFull };
+  function buildUniquePool(){
+    const pool = [];
+    const seen = new Set();
+    const verbs = STATE.data.verbs.filter(v=> STATE.selectedVerbIds.has(v.id));
+    for(const v of verbs){
+      for(const f of v.forms){
+        const mustFull = v.id === 'chiamarsi' ? true : STATE.fullForm;
+        const answer = (mustFull ? f.full : f.it).split('|')[0].trim();
+        const key = `${v.id}:${f.person}:${mustFull}`;
+        if(seen.has(key)) continue;
+        seen.add(key);
+        pool.push({ key, verb:v, form:f, prompt:f.fr, answer, mustFull });
+      }
+    }
+    return pool;
   }
 
+  function prepareQueueUniqueOnly(N){
+    STATE.uniquePool = buildUniquePool();
+    const P = STATE.uniquePool.length;
+    const n = Math.min(N, P);
+    STATE.queue = shuffle(STATE.uniquePool).slice(0, n);
+    STATE.total = n;
+    STATE.repeats = {enabled:false, target:0, scheduled:0, minGap:4, scheduledKeys:new Set()};
+  }
+
+  function prepareQueueWithReviews(N){
+    STATE.uniquePool = buildUniquePool();
+    const P = STATE.uniquePool.length;
+    STATE.queue = shuffle(STATE.uniquePool); // toutes les uniques d'abord
+    STATE.total = N;
+    STATE.repeats = {enabled:true, target:Math.max(0, N-P), scheduled:0, minGap:4, scheduledKeys:new Set()};
+  }
+
+  // ===== QCM choices =====
   function makeQcmChoices(target){
     const { verb, form, answer, mustFull } = target;
     const fmt = f => (mustFull || verb.id==='chiamarsi') ? f.full : f.it;
@@ -295,12 +303,33 @@
   // ===== Mécanique du quiz =====
   async function startQuiz(){
     readConfig();
-    STATE.total = 20; STATE.idx = 0; STATE.good = 0; STATE.history = [];
+    const requested = parseInt($('#qCount').value, 10) || 20;
+
+    // capacité
+    const P = (STATE.selectedVerbIds.size) * 6; // 6 personnes par verbe
+    if(P === 0){ return; }
+    if(requested <= P){
+      prepareQueueUniqueOnly(requested);
+      launch();
+    }else{
+      // Afficher la "modale" de capacité
+      $('#capText').textContent = `Vous avez sélectionné ${STATE.selectedVerbIds.size} verbe(s) → ${P} questions uniques possibles. Voulez‑vous :`;
+      $('#capacity').classList.remove('hidden');
+      // Brancher actions
+      $('#capUnique').onclick = ()=>{ prepareQueueUniqueOnly(requested); launch(); };
+      $('#capReview').onclick = ()=>{ prepareQueueWithReviews(requested); launch(); };
+      $('#capCancel').onclick = ()=>{ $('#capacity').classList.add('hidden'); };
+    }
+  }
+
+  function launch(){
+    $('#capacity').classList.add('hidden');
+    STATE.idx = 0; STATE.good = 0; STATE.history = [];
     $('#config').classList.add('hidden');
     $('#quiz').classList.remove('hidden');
     $('#history').innerHTML = ''; $('#endActions').classList.add('hidden');
     updateCounters();
-    await askNext();
+    askNext();
   }
 
   function updateCounters(){
@@ -308,7 +337,7 @@
     $('#score').textContent = STATE.good;
   }
 
-  async function askNext(){
+  function askNext(){
     if(STATE.idx>=STATE.total){
       $('#qText').textContent = 'Terminé !';
       $('#modeQCM').classList.add('hidden');
@@ -318,10 +347,21 @@
       return;
     }
 
-    STATE.current = nextTarget();
+    if(STATE.queue.length===0){
+      // plus d'unique, si révisions activées mais pas assez planifiées, compléter depuis l'historique
+      if(STATE.repeats.enabled && STATE.repeats.scheduled < STATE.repeats.target){
+        const need = STATE.repeats.target - STATE.repeats.scheduled;
+        const wrongs = STATE.history.filter(h=>!h.ok).map(h=>h.src);
+        const pool = wrongs.length? wrongs : STATE.history.map(h=>h.src);
+        const toAdd = shuffle(pool).slice(0, need);
+        STATE.queue.push(...toAdd.map(cloneItem));
+        STATE.repeats.scheduled += toAdd.length;
+      }
+    }
+
+    STATE.current = STATE.queue.shift();
     const qt = `Comment dit‑on « ${STATE.current.prompt} » en italien ?`;
     $('#qText').textContent = qt;
-    if(STATE.ttsEnabled) speak(qt);
     $('#feedback').textContent = '';
 
     if(STATE.mode==='qcm'){
@@ -342,8 +382,12 @@
     }
   }
 
+  function cloneItem(item){
+    return { key:item.key+":rep", verb:item.verb, form:item.form, prompt:item.prompt, answer:item.answer, mustFull:item.mustFull };
+  }
+
   function recordHistory(isCorrect, given, correct){
-    STATE.history.unshift({ q: `« ${STATE.current.prompt} »`, given, correct, ok:isCorrect });
+    STATE.history.unshift({ q: `« ${STATE.current.prompt} »`, given, correct, ok:isCorrect, src: STATE.current });
     const item = document.createElement('div');
     item.className = 'hist-item';
     item.innerHTML = `
@@ -358,11 +402,25 @@
     $('#history').prepend(item);
   }
 
+  function scheduleReviewIfNeeded(isCorrect){
+    if(!STATE.repeats.enabled) return;
+    if(isCorrect) return;
+    if(STATE.repeats.scheduled >= STATE.repeats.target) return;
+    const key = STATE.current.key;
+    if(STATE.repeats.scheduledKeys.has(key)) return;
+    // insérer après un espacement minimal
+    const insertAt = Math.min(STATE.repeats.minGap-1, STATE.queue.length);
+    STATE.queue.splice(insertAt, 0, cloneItem(STATE.current));
+    STATE.repeats.scheduled++;
+    STATE.repeats.scheduledKeys.add(key);
+  }
+
   async function afterAnswer(isCorrect){
     if(isCorrect){ STATE.good++; }
+    scheduleReviewIfNeeded(isCorrect);
     STATE.idx++;
     updateCounters();
-    await sleep(750);
+    await sleep(600);
     askNext();
   }
 
@@ -396,13 +454,6 @@
     $('#config').classList.remove('hidden');
   });
   $('#replay').addEventListener('click', startQuiz);
-  $('#ttsEnabled').addEventListener('change', ()=>{ STATE.ttsEnabled = $('#ttsEnabled').checked; });
-  $('#testVoice').addEventListener('click', ()=>{
-    // Force l'initialisation via un vrai geste utilisateur
-    unlockTTS();
-    STATE.ttsEnabled = $('#ttsEnabled').checked; // respecte la case cochée
-    speak('Exemple : Comment dit-on « je peux » en italien ?');
-  }); });
 
   // Mode & options
   $$('input[name="mode"]').forEach(r=> r.addEventListener('change', ()=>{
