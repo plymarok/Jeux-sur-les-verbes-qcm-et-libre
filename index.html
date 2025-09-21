@@ -56,6 +56,7 @@
     .choice{display:flex; align-items:center; justify-content:space-between; gap:10px; background:#0f1a33; border:1px solid #13244a; border-radius:12px; padding:12px 14px; font-weight:800; cursor:pointer}
     .choice.correct{outline:2px solid var(--good)}
     .choice.wrong{outline:2px solid var(--bad)}
+    .choice.debug-hint{outline:2px dashed var(--good); box-shadow:0 0 0 2px rgba(34,197,94,.15) inset}
 
     .feedback{margin-top:10px; font-weight:800}
     .ok{color:var(--good)} .ko{color:var(--bad)}
@@ -66,6 +67,8 @@
     .hist-head .ok{background:#10361f; padding:2px 8px; border-radius:999px}
     .hist-head .ko{background:#3a0d13; padding:2px 8px; border-radius:999px}
     .hist-body{color:var(--muted)}
+
+    .debug-ans{margin-top:8px; color:var(--good); font-weight:800}
 
     .hidden{display:none!important}
     .note{color:var(--muted); font-size:.9rem}
@@ -100,6 +103,7 @@
                 <option value="30">30</option>
               </select>
             </label>
+            <label class="chip" title="Affiche la bonne réponse en vert pour contrôle"><input type="checkbox" id="debugMode"> Mode debug</label>
           </div>
           <p class="note">Place un fichier <code>verbs.json</code> à côté de cette page pour alimenter la liste. Sans ce fichier, le démarrage sera bloqué.</p>
           <div id="loadWarn" class="warn hidden">❌ Impossible de charger <code>verbs.json</code>. Ajoute le fichier puis recharge la page.</div>
@@ -147,6 +151,7 @@
               <button>Valider</button>
             </form>
           </div>
+          <div class="debug-ans hidden" id="debugAns"></div>
           <div class="feedback" id="feedback"></div>
         </div>
         <div class="card">
@@ -201,7 +206,8 @@
     current:null,
     queue:[], // file d'attente des questions
     uniquePool:[], // toutes les questions uniques possibles pour cette config
-    repeats:{enabled:false, target:0, scheduled:0, minGap:4, scheduledKeys:new Set()}
+    repeats:{enabled:false, target:0, scheduled:0, minGap:4, scheduledKeys:new Set()},
+    debug:false
   };
 
   // ===== Construction UI config =====
@@ -229,6 +235,29 @@
     STATE.selectedVerbIds = new Set(
       $$('#verbsList input[type="checkbox"]').filter(c=>c.checked).map(c=>c.value)
     );
+  }
+
+  // ===== Debug auth =====
+  function ensureDebugAuth(){
+    const wantDebug = $('#debugMode').checked;
+    const persisted = sessionStorage.getItem('debug') === '1';
+    if(!wantDebug){
+      sessionStorage.removeItem('debug');
+      STATE.debug = false;
+      return true;
+    }
+    if(persisted){ STATE.debug = true; return true; }
+    const pwd = prompt('Mot de passe debug :');
+    if(pwd === null) return false; // annulé
+    if(pwd === 'birdy'){
+      sessionStorage.setItem('debug','1');
+      STATE.debug = true;
+      return true;
+    } else {
+      alert('Mot de passe incorrect');
+      STATE.debug = false;
+      return false;
+    }
   }
 
   // ===== Génération: pool unique & file =====
@@ -303,6 +332,10 @@
   // ===== Mécanique du quiz =====
   async function startQuiz(){
     readConfig();
+
+    // Auth debug avant tout
+    if(!ensureDebugAuth()) return;
+
     const requested = parseInt($('#qCount').value, 10) || 20;
 
     // capacité
@@ -364,6 +397,11 @@
     $('#qText').textContent = qt;
     $('#feedback').textContent = '';
 
+    // Debug hint for input
+    const dbg = $('#debugAns');
+    if(STATE.debug){ dbg.textContent = `DEBUG — réponse attendue : ${STATE.current.answer}`; dbg.classList.remove('hidden'); }
+    else { dbg.classList.add('hidden'); }
+
     if(STATE.mode==='qcm'){
       const box = $('#modeQCM'); box.innerHTML = ''; box.classList.remove('hidden');
       $('#modeInput').classList.add('hidden');
@@ -371,6 +409,9 @@
       options.forEach(opt=>{
         const btn = document.createElement('button');
         btn.type='button'; btn.className='choice'; btn.innerHTML = `<span>${opt}</span>`;
+        if(STATE.debug && normalize(opt)===normalize(STATE.current.answer)){
+          btn.classList.add('debug-hint');
+        }
         btn.addEventListener('click', ()=> handleQcmClick(opt, btn));
         box.appendChild(btn);
       });
@@ -461,8 +502,16 @@
   }));
   $('#fullForm').addEventListener('change', ()=>{ STATE.fullForm = $('#fullForm').checked; });
 
+  // Debug checkbox persistence
+  $('#debugMode').addEventListener('change', ()=>{
+    if(!$('#debugMode').checked){ sessionStorage.removeItem('debug'); STATE.debug=false; }
+  });
+
   // Initialisation
   (async function init(){
+    // restore debug flag
+    if(sessionStorage.getItem('debug')==='1'){ $('#debugMode').checked = true; STATE.debug=true; }
+
     STATE.data = await loadVerbs();
     if(!STATE.data){ $('#start').disabled = true; return; }
     renderVerbChecks(STATE.data.verbs);
