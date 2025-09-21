@@ -8,6 +8,8 @@
     :root{
       --bg:#0b1224; --panel:#0f172a; --card:#101a33; --ink:#eaf0fb; --muted:#9fb0c7;
       --brand:#38bdf8; --brand2:#a78bfa; --good:#22c55e; --bad:#ef4444; --border:#1d2b4f;
+      --yellow:#facc15; --yellow-ink:#ffe88a; --yellow-bg:#2b2300; --yellow-border:#5a4500;
+      --orange:#fb923c; --orange-bg:#2b1700; --orange-border:#6b2b00;
       --radius:16px; --shadow:0 12px 28px rgba(0,0,0,.35)
     }
     html,body{margin:0; background:
@@ -30,10 +32,12 @@
     @media(min-width:900px){.grid{grid-template-columns:1.1fr .9fr}}
 
     .card{background:var(--card); border:1px solid var(--border); border-radius:14px; padding:14px}
+    .card.yellow{background:var(--yellow-bg); border-color:var(--yellow-border); box-shadow:0 0 0 2px rgba(250,204,21,.12) inset}
+    .card.orange{background:var(--orange-bg); border-color:var(--orange-border); box-shadow:0 0 0 2px rgba(251,146,60,.16) inset}
 
     .controls{display:flex; flex-wrap:wrap; gap:10px; align-items:center}
     .chip{display:inline-flex; align-items:center; gap:8px; padding:8px 12px; border-radius:999px; background:#152346; border:1px solid #1b2b58; color:#cfe8ff; font-weight:700}
-    .chip input, select{accent-color:var(--brand)}
+    .chip input{accent-color:var(--brand)}
 
     .verb-list{display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:12px}
     .verb{display:flex; align-items:flex-start; gap:10px; padding:12px 14px; background:#0f1a33; border:1px solid #13244a; border-radius:12px}
@@ -50,10 +54,17 @@
     button:active{transform:translateY(1px)}
     @media(hover:hover){button:hover{filter:brightness(1.07); transform:translateY(-1px)}}
 
-    .question{font-size:1.05rem; font-weight:800}
+    .question{font-size:1.05rem; font-weight:800; display:flex; align-items:center; gap:8px; flex-wrap:wrap}
+    .badge{display:inline-flex; align-items:center; gap:6px; padding:3px 8px; border-radius:999px; font-size:.75rem; font-weight:900}
+    .badge.yellow{border:1px solid var(--yellow-border); background:var(--yellow-bg); color:var(--yellow)}
+    .badge.orange{border:1px solid var(--orange-border); background:var(--orange-bg); color:var(--orange)}
+    .badge.prol{border:1px solid #334155; background:#0e1a35; color:#cbd5e1}
+
     .choices{display:grid; gap:10px; margin-top:12px}
     @media(min-width:720px){.choices{grid-template-columns:1fr 1fr}}
     .choice{display:flex; align-items:center; justify-content:space-between; gap:10px; background:#0f1a33; border:1px solid #13244a; border-radius:12px; padding:12px 14px; font-weight:800; cursor:pointer}
+    .card.yellow .choice{background:#1b1603; border-color:#3b2f03}
+    .card.orange .choice{background:#241403; border-color:#4b2b07}
     .choice.correct{outline:2px solid var(--good)}
     .choice.wrong{outline:2px solid var(--bad)}
     .choice.debug-hint{outline:2px dashed var(--good); box-shadow:0 0 0 2px rgba(34,197,94,.15) inset}
@@ -64,8 +75,9 @@
     .history{display:grid; gap:8px}
     .hist-item{display:grid; gap:6px; border:1px dashed #1b2b58; border-radius:10px; padding:10px}
     .hist-head{display:flex; justify-content:space-between; gap:8px; font-weight:800}
-    .hist-head .ok{background:#10361f; padding:2px 8px; border-radius:999px}
-    .hist-head .ko{background:#3a0d13; padding:2px 8px; border-radius:999px}
+    .hist-head .tag{padding:2px 8px; border-radius:999px}
+    .hist-head .tag.yellow{background:var(--yellow-bg); border:1px solid var(--yellow-border); color:var(--yellow)}
+    .hist-head .tag.orange{background:var(--orange-bg); border:1px solid var(--orange-border); color:var(--orange)}
     .hist-body{color:var(--muted)}
 
     .debug-ans{margin-top:8px; color:var(--good); font-weight:800}
@@ -73,23 +85,12 @@
     .hidden{display:none!important}
     .note{color:var(--muted); font-size:.9rem}
     .warn{background:#3a0d13; color:#ffd6db; border:1px solid #7a1a23; padding:10px 12px; border-radius:12px}
-
-    /* petite "modale" inline pour la capacité */
-    .capacity{border:1px solid #6b1b1b; background:#2a1010; color:#ffd6d9; border-radius:12px; padding:12px; display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:space-between}
-    .capacity .actions{display:flex; gap:8px}
-  </style>
-  <style>
-    /* === Styles ajoutés pour les reprises (subsidiaries) === */
-    .card.subs{background:#2b2300; border-color:#5a4500; box-shadow:0 0 0 2px rgba(250,204,21,.12) inset}
-    .badge-subs{display:inline-flex; align-items:center; gap:6px; padding:3px 8px; border-radius:999px; border:1px solid #5a4500; background:#2b2300; color:#facc15; font-size:.75rem; font-weight:900}
-    .card.subs .choice{background:#1b1603; border-color:#3b2f03}
-    .hist-head .subs{background:#2b2300; border:1px solid #5a4500; color:#facc15; padding:2px 8px; border-radius:999px}
   </style>
 </head>
 <body>
   <header>
     <h1>Exercices — Verbes italiens</h1>
-    <p>Choisis tes verbes (chargés depuis <code>verbs.json</code>), ton mode (QCM ou saisie libre) et lance une série sans répétition. Correction immédiate + historique.</p>
+    <p>Choisis tes verbes (chargés depuis <code>verbs.json</code>), ton mode (QCM ou saisie libre) et lance une série sans répétition. Si le nombre demandé dépasse les uniques, on ajoute des reprises : <strong>orange</strong> (erreurs non résolues) en priorité, puis <strong>jaune</strong> (long temps de réflexion).</p>
   </header>
 
   <div class="wrap">
@@ -102,19 +103,10 @@
             <label class="chip"><input type="radio" name="mode" value="qcm" checked> QCM</label>
             <label class="chip"><input type="radio" name="mode" value="saisie"> Saisie libre</label>
             <label class="chip" title="Toujours actif pour CHIAMARSI"><input type="checkbox" id="fullForm" checked> Forme complète (pronoms)</label>
-            
             <label class="chip" title="Affiche la bonne réponse en vert pour contrôle"><input type="checkbox" id="debugMode"> Mode debug</label>
           </div>
           <p class="note">Place un fichier <code>verbs.json</code> à côté de cette page pour alimenter la liste. Sans ce fichier, le démarrage sera bloqué.</p>
           <div id="loadWarn" class="warn hidden">❌ Impossible de charger <code>verbs.json</code>. Ajoute le fichier puis recharge la page.</div>
-          <div id="capacity" class="capacity hidden" role="alert">
-            <div id="capText">Capacité</div>
-            <div class="actions">
-              <button id="capUnique" class="ghost">Rester à P (uniques)</button>
-              <button id="capReview" class="ghost">Atteindre N avec révisions</button>
-              <button id="capCancel" class="ghost">Annuler</button>
-            </div>
-          </div>
         </div>
         <div class="card">
           <strong>Verbes à inclure :</strong>
@@ -133,6 +125,7 @@
         <div class="bar" role="status">
           <div class="counters">
             <div>Progression : <span id="progress">1/20</span></div>
+            <div id="prolBadge" class="badge prol hidden">Prolongation</div>
             <div>Bonnes réponses : <span id="score">0</span></div>
           </div>
           <div style="display:flex; gap:8px">
@@ -199,15 +192,21 @@
     selectedVerbIds:new Set(),
     mode:'qcm', // 'qcm' | 'saisie'
     fullForm:true,
-    total:20,
+    baseTotal:20, // demandé initial
+    capTotal:60,  // baseTotal + 2*baseTotal
     idx:0,
     good:0,
     history:[],
     current:null,
-    queue:[], // file d'attente des questions
+    queue:[], // file d'attente des questions (objets)
     uniquePool:[], // toutes les questions uniques possibles pour cette config
-    repeats:{enabled:false, target:0, scheduled:0, minGap:4, scheduledKeys:new Set()},
-    debug:false
+    phase:'uniques', // 'uniques' | 'subs_pre' | 'subs_loop'
+    prolongation:false,
+    debug:false,
+    qStart:0,
+    stats:new Map(), // key => {attempts, hadCorrect, maxDur, lastSrc}
+    unresolved:new Set(), // keys en erreur non résolue (ORANGE)
+    repeatedYellowFrom:new Set() // pour limiter à 1 reprise jaune par source
   };
 
   // ===== Construction UI config =====
@@ -217,7 +216,7 @@
       const id = `verb-${v.id}`;
       const el = document.createElement('label');
       el.className = 'verb';
-      el.innerHTML = `<input type="checkbox" id="${id}" value="${v.id}"> <div class="vcol"><div class="it">${v.it}</div><div class="fr">— ${v.fr}</div></div>`;
+      el.innerHTML = `<input type=\"checkbox\" id=\"${id}\" value=\"${v.id}\"> <div class=\"vcol\"><div class=\"it\">${v.it}</div><div class=\"fr\">— ${v.fr}</div></div>`;
       box.appendChild(el);
       el.querySelector('input').addEventListener('change', onVerbToggle);
     });
@@ -226,7 +225,6 @@
   function onVerbToggle(){
     const any = $$('#verbsList input[type="checkbox"]').some(c => c.checked);
     $('#start').disabled = !any || !STATE.data; // bloque si pas de données
-    $('#capacity').classList.add('hidden');
   }
 
   function readConfig(){
@@ -275,58 +273,23 @@
         const key = `${v.id}:${f.person}:${mustFull}`;
         if(seen.has(key)) continue;
         seen.add(key);
-        pool.push({ key, verb:v, form:f, prompt:f.fr, answer, mustFull });
+        pool.push({ key, verb:v, form:f, prompt:f.fr, answer, mustFull, subsidiary:false, subType:null });
       }
     }
     return pool;
   }
 
-  function prepareQueueUniqueOnly(N){
+  function prepareQueue(N){
     STATE.uniquePool = buildUniquePool();
     const P = STATE.uniquePool.length;
-    const n = Math.min(N, P);
-    STATE.queue = shuffle(STATE.uniquePool).slice(0, n);
-    STATE.total = n;
-    STATE.repeats = {enabled:false, target:0, scheduled:0, minGap:4, scheduledKeys:new Set()};
-  }
-
-  function prepareQueueWithReviews(N){
-    STATE.uniquePool = buildUniquePool();
-    const P = STATE.uniquePool.length;
-    STATE.queue = shuffle(STATE.uniquePool); // toutes les uniques d'abord
-    STATE.total = N;
-    STATE.repeats = {enabled:true, target:Math.max(0, N-P), scheduled:0, minGap:4, scheduledKeys:new Set()};
-  }
-
-  // ===== QCM choices =====
-  function makeQcmChoices(target){
-    const { verb, form, answer, mustFull } = target;
-    const fmt = f => (mustFull || verb.id==='chiamarsi') ? f.full : f.it;
-
-    const choices = new Set([ normalize(answer) ]);
-    const labels = [ answer ];
-
-    const sameVerb = shuffle(verb.forms.filter(f=>f!==form)).slice(0,2);
-    sameVerb.forEach(f=>{
-      let label = fmt(f).split('|')[0].trim();
-      if(!choices.has(normalize(label))){ choices.add(normalize(label)); labels.push(label); }
-    });
-
-    const otherVerbs = shuffle(STATE.data.verbs.filter(v=>v.id!==verb.id && STATE.selectedVerbIds.has(v.id)));
-    for(const v of otherVerbs){
-      const f = pick(v.forms);
-      const lbl = (v.id==='chiamarsi' ? f.full : (STATE.fullForm ? f.full : f.it)).split('|')[0].trim();
-      if(!choices.has(normalize(lbl))){ choices.add(normalize(lbl)); labels.push(lbl); }
-      if(labels.length>=5) break;
-    }
-
-    while(labels.length<5){
-      const f = pick(verb.forms);
-      const lbl = fmt(f).split('|')[0].trim();
-      if(!choices.has(normalize(lbl))){ choices.add(normalize(lbl)); labels.push(lbl); }
-    }
-
-    return shuffle(labels);
+    const base = shuffle(STATE.uniquePool);
+    STATE.queue = base.slice(0, Math.min(N, P));
+    STATE.baseTotal = N;
+    STATE.capTotal = N + 2*N;
+    STATE.idx = 0; STATE.good = 0; STATE.history = []; STATE.current = null; STATE.qStart = 0;
+    STATE.phase = 'uniques'; STATE.prolongation = false;
+    STATE.stats = new Map(); STATE.unresolved = new Set(); STATE.repeatedYellowFrom = new Set();
+    updateCounters();
   }
 
   // ===== Demande du nombre de questions =====
@@ -340,6 +303,106 @@
     return n;
   }
 
+  // ===== Sélection des reprises =====
+  function keyStatsEnsure(key){
+    if(!STATE.stats.has(key)) STATE.stats.set(key, {attempts:0, hadCorrect:false, maxDur:0, lastSrc:null});
+    return STATE.stats.get(key);
+  }
+
+  function cloneAs(src, subType){
+    return { key:src.key, verb:src.verb, form:src.form, prompt:src.prompt, answer:src.answer, mustFull:src.mustFull, subsidiary:true, subType };
+  }
+
+  function getSrcByKey(key){
+    // cherche dans uniquePool d'abord, sinon depuis la dernière trace en stats
+    const base = STATE.uniquePool.find(x=>x.key===key);
+    if(base) return base;
+    const st = STATE.stats.get(key);
+    return st && st.lastSrc ? st.lastSrc : null;
+  }
+
+  function longestYellowCandidates(excludeKeys=new Set()){
+    // candidates éligibles aux jaunes: vus au moins une fois et non non-résolus
+    const arr = [];
+    STATE.stats.forEach((st, key)=>{
+      if(STATE.unresolved.has(key)) return; // non résolue → pas jaune
+      if(excludeKeys.has(key)) return;
+      if(STATE.repeatedYellowFrom.has(key)) return; // max 1 jaune par source
+      if(st.maxDur>0 && st.lastSrc){ arr.push({key, st}); }
+    });
+    arr.sort((a,b)=> b.st.maxDur - a.st.maxDur);
+    return arr.map(x=> cloneAs(x.st.lastSrc, 'yellow'));
+  }
+
+  function unresolvedOrangeCandidates(excludeKeys=new Set()){
+    const list = [];
+    for(const key of STATE.unresolved){
+      if(excludeKeys.has(key)) continue;
+      const src = getSrcByKey(key);
+      if(src) list.push(cloneAs(src, 'orange'));
+    }
+    return list;
+  }
+
+  function fillPreBaseIfNeeded(){
+    if(STATE.phase==='uniques' && STATE.queue.length===0){
+      STATE.phase = 'subs_pre';
+    }
+    if(STATE.phase!=='subs_pre') return;
+    const need = Math.max(0, STATE.baseTotal - STATE.idx - STATE.queue.length);
+    if(need<=0) return;
+
+    const exclude = new Set();
+    const oranges = unresolvedOrangeCandidates(exclude);
+    const picked = [];
+    for(const o of oranges){
+      if(picked.length>=need) break;
+      picked.push(o); exclude.add(o.key);
+    }
+    if(picked.length<need){
+      const yellows = longestYellowCandidates(exclude);
+      for(const y of yellows){
+        if(picked.length>=need) break;
+        picked.push(y); exclude.add(y.key);
+        STATE.repeatedYellowFrom.add(y.key);
+      }
+    }
+    STATE.queue.push(...picked);
+  }
+
+  function enterProlongation(){
+    if(STATE.prolongation) return;
+    STATE.prolongation = true;
+    $('#prolBadge').classList.remove('hidden');
+    STATE.phase = 'subs_loop';
+  }
+
+  function fillProlongation(){
+    if(!STATE.prolongation) return;
+    if(STATE.queue.length>0) return;
+    if(STATE.unresolved.size===0) return;
+
+    // Alternance Orange -> Jaune
+    const exclude = new Set();
+    const oranges = unresolvedOrangeCandidates(exclude);
+    if(oranges.length){
+      const o = oranges[0]; STATE.queue.push(o); exclude.add(o.key);
+    }
+    let yadded = false;
+    const yellows = longestYellowCandidates(exclude);
+    if(yellows.length){
+      const y = yellows[0]; STATE.queue.push(y); exclude.add(y.key); STATE.repeatedYellowFrom.add(y.key); yadded = true;
+    }
+    // Si aucune jaune dispo, insérer un filler depuis une juste vue (même logique que yellow, mais sans maxDur? on réutilise tri)
+    if(!yadded && STATE.unresolved.size>0){
+      // chercher n'importe quelle juste vue (même si déjà yellow une fois) avec maxDur>0
+      const anyJuste = [];
+      STATE.stats.forEach((st,key)=>{ if(!STATE.unresolved.has(key) && st.maxDur>0 && st.lastSrc){ anyJuste.push({key, st}); }});
+      anyJuste.sort((a,b)=> b.st.maxDur - a.st.maxDur);
+      if(anyJuste.length){ const f = cloneAs(anyJuste[0].st.lastSrc, 'yellow'); STATE.queue.push(f); }
+    }
+  }
+
   // ===== Mécanique du quiz =====
   async function startQuiz(){
     readConfig();
@@ -347,74 +410,86 @@
     // Auth debug avant tout
     if(!ensureDebugAuth()) return;
 
-    const requested = (typeof getRequestedCount==='function' ? getRequestedCount() : 20);
+    const requested = getRequestedCount();
     if(requested===null) return; // annulé
 
-    // capacité
-    const P = (STATE.selectedVerbIds.size) * 6; // 6 personnes par verbe
-    if(P === 0){ return; }
-    if(requested <= P){
-      prepareQueueUniqueOnly(requested);
-      launch();
-    }else{
-      // Afficher la "modale" de capacité et revenir à la config
-      $('#quiz').classList.add('hidden');
-      $('#config').classList.remove('hidden')
-      $('#capText').textContent = `Vous avez sélectionné ${STATE.selectedVerbIds.size} verbe(s) → ${P} questions uniques possibles. Voulez‑vous :`;
-      $('#capacity').classList.remove('hidden');
-      // Brancher actions
-      $('#capUnique').onclick = ()=>{ prepareQueueUniqueOnly(requested); launch(); };
-      $('#capReview').onclick = ()=>{ prepareQueueWithReviews(requested); launch(); };
-      $('#capCancel').onclick = ()=>{ $('#capacity').classList.add('hidden'); };
-    }
-  }
-
-  function launch(){
-    $('#capacity').classList.add('hidden');
-    STATE.idx = 0; STATE.good = 0; STATE.history = [];
+    prepareQueue(requested);
     $('#config').classList.add('hidden');
     $('#quiz').classList.remove('hidden');
     $('#history').innerHTML = ''; $('#endActions').classList.add('hidden');
-    updateCounters();
     askNext();
   }
 
   function updateCounters(){
-    $('#progress').textContent = `${Math.min(STATE.idx+1, STATE.total)}/${STATE.total}`;
+    const idx1 = Math.min(STATE.idx+1, Math.max(STATE.baseTotal, STATE.idx+1));
+    if(STATE.prolongation){
+      const extra = Math.max(0, idx1 - STATE.baseTotal);
+      $('#progress').textContent = `${STATE.baseTotal} + ${extra}`;
+    } else {
+      $('#progress').textContent = `${idx1}/${STATE.baseTotal}`;
+    }
     $('#score').textContent = STATE.good;
   }
 
+  function endIfDone(){
+    // Fin si: (avant prolongation) idx>=baseTotal et aucune non-résolue
+    if(!STATE.prolongation){
+      if(STATE.idx>=STATE.baseTotal){
+        if(STATE.unresolved.size>0){ enterProlongation(); return false; }
+        finish(); return true;
+      }
+      return false;
+    }
+    // en prolongation: fin si plus d'orange OU cap atteint
+    if(STATE.unresolved.size===0 || STATE.idx>=STATE.capTotal){ finish(); return true; }
+    return false;
+  }
+
+  function finish(){
+    $('#qText').textContent = 'Terminé !';
+    $('#modeQCM').classList.add('hidden');
+    $('#modeInput').classList.add('hidden');
+    const extra = STATE.prolongation ? ` (prolongation +${Math.max(0, STATE.idx - STATE.baseTotal)})` : '';
+    $('#feedback').innerHTML = `<span class="ok">Score final : ${STATE.good}/${Math.max(STATE.baseTotal, STATE.idx)}</span>${extra}`;
+    $('#endActions').classList.remove('hidden');
+  }
+
   function askNext(){
-    if(STATE.idx>=STATE.total){
-      $('#qText').textContent = 'Terminé !';
-      $('#modeQCM').classList.add('hidden');
-      $('#modeInput').classList.add('hidden');
-      $('#feedback').innerHTML = `<span class="ok">Score final : ${STATE.good}/${STATE.total}</span>`;
-      $('#endActions').classList.remove('hidden');
+    if(endIfDone()) return;
+
+    // Gestion des files selon la phase
+    if(STATE.phase==='uniques' && STATE.queue.length===0){ STATE.phase='subs_pre'; }
+    if(STATE.phase==='subs_pre') fillPreBaseIfNeeded();
+    if(STATE.idx>=STATE.baseTotal && STATE.unresolved.size>0){ enterProlongation(); }
+    if(STATE.phase==='subs_loop') fillProlongation();
+
+    if(STATE.queue.length===0){
+      // sécurité: si vraiment vide et rien à poser
+      finish();
       return;
     }
 
-    if(STATE.queue.length===0){
-      // plus d'unique, si révisions activées mais pas assez planifiées, compléter depuis l'historique
-      if(STATE.repeats.enabled && STATE.repeats.scheduled < STATE.repeats.target){
-        const need = STATE.repeats.target - STATE.repeats.scheduled;
-        const wrongs = STATE.history.filter(h=>!h.ok).map(h=>h.src);
-        const pool = wrongs.length? wrongs : STATE.history.map(h=>h.src);
-        const toAdd = shuffle(pool).slice(0, need);
-        STATE.queue.push(...toAdd.map(cloneItem));
-        STATE.repeats.scheduled += toAdd.length;
-      }
+    STATE.current = STATE.queue.shift();
+
+    const card = document.getElementById('currentQ');
+    card.classList.remove('yellow','orange');
+    let badge = '';
+    if(STATE.current.subsidiary){
+      if(STATE.current.subType==='orange'){ card.classList.add('orange'); badge = '<span class="badge orange">ORANGE</span>'; }
+      else { card.classList.add('yellow'); badge = '<span class="badge yellow">SUBSIDIARY</span>'; }
     }
 
-    STATE.current = STATE.queue.shift();
     const qt = `Comment dit‑on « ${STATE.current.prompt} » en italien ?`;
-    $('#qText').textContent = qt;
+    $('#qText').innerHTML = `${STATE.prolongation? '<span class="badge prol">Prolongation</span> ' : ''}${badge} ${qt}`;
     $('#feedback').textContent = '';
 
     // Debug hint for input
     const dbg = $('#debugAns');
     if(STATE.debug){ dbg.textContent = `DEBUG — réponse attendue : ${STATE.current.answer}`; dbg.classList.remove('hidden'); }
     else { dbg.classList.add('hidden'); }
+
+    // démarrer le chrono
+    STATE.qStart = Date.now();
 
     if(STATE.mode==='qcm'){
       const box = $('#modeQCM'); box.innerHTML = ''; box.classList.remove('hidden');
@@ -435,19 +510,30 @@
       $('#answer').value = '';
       $('#answer').focus();
     }
-  }
 
-  function cloneItem(item){
-    return { key:item.key+":rep", verb:item.verb, form:item.form, prompt:item.prompt, answer:item.answer, mustFull:item.mustFull };
+    updateCounters();
   }
 
   function recordHistory(isCorrect, given, correct){
-    STATE.history.unshift({ q: `« ${STATE.current.prompt} »`, given, correct, ok:isCorrect, src: STATE.current });
+    const dur = Math.max(0, Date.now() - (STATE.qStart||Date.now()));
+    const key = STATE.current.key;
+    const wasSubs = !!STATE.current.subsidiary;
+    const subType = STATE.current.subType;
+
+    // maj stats
+    const st = keyStatsEnsure(key);
+    st.attempts++; st.maxDur = Math.max(st.maxDur||0, dur); st.lastSrc = st.lastSrc || { ...STATE.current, subsidiary:false, subType:null };
+    if(isCorrect){ st.hadCorrect = true; STATE.unresolved.delete(key); } else { if(!st.hadCorrect) STATE.unresolved.add(key); }
+
+    STATE.history.unshift({ q: `« ${STATE.current.prompt} »`, given, correct, ok:isCorrect, src: { ...STATE.current, subsidiary:false }, dur, idx: STATE.idx+1, wasSubs, subType });
+
     const item = document.createElement('div');
     item.className = 'hist-item';
+    const tag = wasSubs ? `<span class="tag ${subType==='orange'?'orange':'yellow'}">${subType==='orange'?'ORANGE':'SUBSIDIARY'}</span>` : '';
+    const durSec = (dur/1000).toFixed(1)+'s';
     item.innerHTML = `
       <div class="hist-head">
-        <div>${STATE.history[0].q}</div>
+        <div>${tag} ${STATE.history[0].q} · <span title="Temps de réponse">${durSec}</span></div>
         <div class="${isCorrect? 'ok':'ko'}">${isCorrect?'✅ Réussi':'❌ Faux'}</div>
       </div>
       <div class="hist-body">
@@ -457,25 +543,21 @@
     $('#history').prepend(item);
   }
 
-  function scheduleReviewIfNeeded(isCorrect){
-    if(!STATE.repeats.enabled) return;
-    if(isCorrect) return;
-    if(STATE.repeats.scheduled >= STATE.repeats.target) return;
-    const key = STATE.current.key;
-    if(STATE.repeats.scheduledKeys.has(key)) return;
-    // insérer après un espacement minimal
-    const insertAt = Math.min(STATE.repeats.minGap-1, STATE.queue.length);
-    STATE.queue.splice(insertAt, 0, cloneItem(STATE.current));
-    STATE.repeats.scheduled++;
-    STATE.repeats.scheduledKeys.add(key);
-  }
-
   async function afterAnswer(isCorrect){
     if(isCorrect){ STATE.good++; }
-    scheduleReviewIfNeeded(isCorrect);
+    // Si on est en phase subs (pré-base ou prolongation) et que c'était une ORANGE fausse, la replanifier à +1
+    if(!isCorrect && STATE.current.subsidiary && STATE.current.subType==='orange'){
+      // réinsertion rapide : une question entre les deux
+      const src = getSrcByKey(STATE.current.key);
+      if(src){
+        const again = cloneAs(src, 'orange');
+        STATE.queue.splice(1, 0, again); // +1
+      }
+    }
+
     STATE.idx++;
     updateCounters();
-    await sleep(600);
+    await sleep(500);
     askNext();
   }
 
@@ -485,7 +567,7 @@
     const ok = normalize(choice)===normalize(correct);
     $$('#modeQCM .choice').forEach(b=> b.disabled=true);
     btn.classList.add(ok? 'correct':'wrong');
-    $('#feedback').innerHTML = ok ? '<span class="ok">✅ Correct</span>' : `<span class="ko">❌ Faux</span> → Bonne réponse : <strong>${correct}</strong>`;
+    $('#feedback').innerHTML = ok ? '<span class="ok">✅ Correct</span>' : `<span class=\"ko\">❌ Faux</span> → Bonne réponse : <strong>${correct}</strong>`;
     recordHistory(ok, choice, correct);
     afterAnswer(ok);
   }
@@ -496,19 +578,30 @@
     const val = $('#answer').value;
     const correct = STATE.current.answer;
     const ok = normalize(val)===normalize(correct);
-    $('#feedback').innerHTML = ok ? '<span class="ok">✅ Correct</span>' : `<span class="ko">❌ Faux</span> → Bonne réponse : <strong>${correct}</strong>`;
+    $('#feedback').innerHTML = ok ? '<span class="ok">✅ Correct</span>' : `<span class=\"ko\">❌ Faux</span> → Bonne réponse : <strong>${correct}</strong>`;
     recordHistory(ok, val, correct);
     afterAnswer(ok);
   });
 
   // Boutons
-  $('#start').addEventListener('click', startQuiz);
-  $('#reset').addEventListener('click', startQuiz);
+  function bindStartLike(id){
+    const el = document.getElementById(id); if(!el) return;
+    const clone = el.cloneNode(true); el.parentNode.replaceChild(clone, el);
+    clone.addEventListener('click', ()=>{
+      readConfig(); if(!ensureDebugAuth()) return; const n = getRequestedCount(); if(n===null) return; prepareQueue(n);
+      $('#config').classList.add('hidden'); $('#quiz').classList.remove('hidden'); $('#history').innerHTML=''; $('#endActions').classList.add('hidden');
+      askNext();
+    });
+  }
+  bindStartLike('start');
+  bindStartLike('reset');
+  bindStartLike('replay');
+
   $('#backToConfig').addEventListener('click', ()=>{
     $('#quiz').classList.add('hidden');
     $('#config').classList.remove('hidden');
+    $('#prolBadge').classList.add('hidden');
   });
-  $('#replay').addEventListener('click', startQuiz);
 
   // Mode & options
   $$('input[name="mode"]').forEach(r=> r.addEventListener('change', ()=>{
@@ -529,139 +622,6 @@
     STATE.data = await loadVerbs();
     if(!STATE.data){ $('#start').disabled = true; return; }
     renderVerbChecks(STATE.data.verbs);
-  })();
-  </script>
-  <script>
-  // === Extension logique: reprises par temps de réflexion + marquage jaune ===
-  (function(){
-    if(typeof window.STATE === 'undefined') return;
-    // Étend l'état
-    if(!STATE.repeatedFrom) STATE.repeatedFrom = new Set();
-    if(typeof STATE.qStart === 'undefined') STATE.qStart = 0;
-
-    // Utilitaires sûrs
-    const has = (fn)=> typeof fn === 'function';
-
-    // Préparer la file: uniques d'abord
-    function prepareQueue(N){
-      if(!has(window.buildUniquePool)) return;
-      STATE.uniquePool = buildUniquePool();
-      const P = STATE.uniquePool.length;
-      const base = has(window.shuffle) ? shuffle(STATE.uniquePool) : STATE.uniquePool.slice();
-      STATE.queue = base.slice(0, Math.min(N, P));
-      STATE.total = N;
-      STATE.repeatedFrom.clear();
-    }
-    window.prepareQueue = prepareQueue;
-
-    // Ajoute des reprises en fonction du temps de réponse (du plus long au plus court)
-    function scheduleSubsidiariesIfNeeded(){
-      const remainingNeeded = STATE.total - STATE.idx - STATE.queue.length;
-      if(remainingNeeded <= 0) return;
-      const candidates = (STATE.history||[])
-        .filter(h => h && h.src && !h.src.subsidiary && !STATE.repeatedFrom.has(h.src.key))
-        .sort((a,b)=> (b.dur||0) - (a.dur||0));
-      const toTake = candidates.slice(0, remainingNeeded);
-      const clones = toTake.map(h=>{ STATE.repeatedFrom.add(h.src.key); return Object.assign({}, h.src, {subsidiary:true}); });
-      if(has(window.shuffle)) STATE.queue.push(...shuffle(clones)); else STATE.queue.push(...clones);
-    }
-    window.scheduleSubsidiariesIfNeeded = scheduleSubsidiariesIfNeeded;
-
-    // Remplace askNext pour insérer le marquage jaune + chrono et gérer les reprises
-    window.askNext = function(){
-      if(STATE.idx>=STATE.total){
-        document.getElementById('qText').textContent = 'Terminé !';
-        document.getElementById('modeQCM').classList.add('hidden');
-        document.getElementById('modeInput').classList.add('hidden');
-        document.getElementById('feedback').innerHTML = '<span class="ok">Score final : '+STATE.good+'/'+STATE.total+'</span>';
-        document.getElementById('endActions').classList.remove('hidden');
-        return;
-      }
-      if(STATE.queue.length===0){
-        scheduleSubsidiariesIfNeeded();
-        if(STATE.queue.length===0){
-          document.getElementById('qText').textContent = 'Terminé !';
-          document.getElementById('modeQCM').classList.add('hidden');
-          document.getElementById('modeInput').classList.add('hidden');
-          document.getElementById('feedback').innerHTML = '<span class="ok">Score final : '+STATE.good+'/'+STATE.total+'</span>';
-          document.getElementById('endActions').classList.remove('hidden');
-          return;
-        }
-      }
-
-      STATE.current = STATE.queue.shift();
-      const card = document.getElementById('currentQ');
-      card.classList.toggle('subs', !!STATE.current.subsidiary);
-      const badge = STATE.current.subsidiary ? '<span class="badge-subs">SUBSIDIARY</span>' : '';
-      const qt = 'Comment dit‑on « '+STATE.current.prompt+' » en italien ?';
-      document.getElementById('qText').innerHTML = badge+' '+qt;
-      document.getElementById('feedback').textContent = '';
-
-      // Debug hint pour saisie libre
-      const dbg = document.getElementById('debugAns');
-      if(STATE.debug){ dbg.textContent = 'DEBUG — réponse attendue : '+STATE.current.answer; dbg.classList.remove('hidden'); } else { dbg.classList.add('hidden'); }
-
-      // démarrer le chrono
-      STATE.qStart = Date.now();
-
-      if(STATE.mode==='qcm'){
-        const box = document.getElementById('modeQCM'); box.innerHTML = ''; box.classList.remove('hidden');
-        document.getElementById('modeInput').classList.add('hidden');
-        const options = has(window.makeQcmChoices) ? makeQcmChoices(STATE.current) : [STATE.current.answer];
-        options.forEach(opt=>{
-          const btn = document.createElement('button');
-          btn.type='button'; btn.className='choice'; btn.innerHTML = '<span>'+opt+'</span>';
-          if(STATE.debug && has(window.normalize) && normalize(opt)===normalize(STATE.current.answer)){
-            btn.classList.add('debug-hint');
-          }
-          btn.addEventListener('click', ()=> handleQcmClick(opt, btn));
-          box.appendChild(btn);
-        });
-      }else{
-        document.getElementById('modeQCM').classList.add('hidden');
-        document.getElementById('modeInput').classList.remove('hidden');
-        const a = document.getElementById('answer'); if(a){ a.value=''; a.focus(); }
-      }
-    };
-
-    // Remplace recordHistory pour mémoriser le temps + badge jaune dans l'historique
-    window.recordHistory = function(isCorrect, given, correct){
-      const dur = Math.max(0, Date.now() - (STATE.qStart||Date.now()));
-      const wasSubs = !!STATE.current.subsidiary;
-      const idx = STATE.idx + 1;
-      STATE.history.unshift({ q: '« '+STATE.current.prompt+' »', given, correct, ok:isCorrect, src: STATE.current, dur, idx, wasSubs });
-      const item = document.createElement('div');
-      item.className = 'hist-item';
-      const tag = wasSubs ? '<span class="subs">SUBSIDIARY</span>' : '';
-      const durSec = (dur/1000).toFixed(1)+'s';
-      item.innerHTML = '<div class="hist-head"><div>'+tag+' '+STATE.history[0].q+' · <span title="Temps de réponse">'+durSec+'</span></div><div class="'+(isCorrect?'ok':'ko')+'">'+(isCorrect?'✅ Réussi':'❌ Faux')+'</div></div><div class="hist-body">Ta réponse : <strong>'+(given||'—')+'</strong><br>'+ (isCorrect?'':'Bonne réponse : <strong>'+correct+'</strong>') +'</div>';
-      const hist = document.getElementById('history'); if(hist) hist.prepend(item);
-    };
-
-    // Nouveau démarrage qui demande le nombre + prépare la file uniques
-    function newStartQuiz(){
-      if(!has(window.readConfig)) return; readConfig();
-      if(!ensureDebugAuth()) return;
-      const def = parseInt(sessionStorage.getItem('qCount')||'20',10);
-      const input = prompt('Combien de questions ? (ex: 20)', isNaN(def)?'20':String(def));
-      if(input===null) return; const n = parseInt(input,10); if(!Number.isFinite(n)||n<=0){ alert('Entrée invalide.'); return; }
-      sessionStorage.setItem('qCount', String(n));
-      prepareQueue(n);
-      // launch
-      STATE.idx = 0; STATE.good = 0; STATE.history = []; STATE.current = null; STATE.qStart = 0;
-      document.getElementById('config').classList.add('hidden');
-      document.getElementById('quiz').classList.remove('hidden');
-      document.getElementById('history').innerHTML = ''; document.getElementById('endActions').classList.add('hidden');
-      document.getElementById('progress').textContent = '1/'+STATE.total; document.getElementById('score').textContent = '0';
-      askNext();
-    }
-
-    // Rebind des boutons: on clone pour enlever les anciens listeners
-    ['start','reset','replay'].forEach(id=>{
-      const el = document.getElementById(id); if(!el) return;
-      const clone = el.cloneNode(true); el.parentNode.replaceChild(clone, el);
-      clone.addEventListener('click', newStartQuiz);
-    });
   })();
   </script>
 </body>
